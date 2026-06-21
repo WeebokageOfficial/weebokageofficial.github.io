@@ -19,6 +19,20 @@
             document.documentElement.setAttribute('data-theme', savedTheme);
         })();
     </script>
+    <script>
+    // 1. Immediately hide the page
+    document.body.classList.add('guarded');
+
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            // 2. If it's you, show the page
+            document.body.classList.remove('guarded');
+        } else {
+            // 3. If it's a guest or Google, kick them out
+            window.location.replace("index.html");
+        }
+    });
+</script>
     <style>
         .weather-banner { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
         .weather-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border: 1px solid var(--primary); border-radius: 20px; padding: 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 0 20px var(--primary-glow); animation: weatherFloat 4s ease-in-out infinite; }
