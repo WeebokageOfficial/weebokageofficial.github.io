@@ -267,3 +267,7 @@ input:focus + i, textarea:focus + i {
 @media (max-width: 600px) {
     .weather-banner { grid-template-columns: 1fr; }
 }
+/* Hide everything until we know who the user is */
+body.guarded {
+    display: none;
+}
