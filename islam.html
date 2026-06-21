@@ -40,6 +40,19 @@
     </div>
 
     <script>
+        <script>
+    // 1. Immediately hide the page
+    document.body.classList.add('guarded');
+
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            // 2. If it's you, show the page
+            document.body.classList.remove('guarded');
+        } else {
+            // 3. If it's a guest or Google, kick them out
+            window.location.replace("index.html");
+        }
+    });
         const API_KEY = "$2y$10$bh8gWRHGMPAOaerOv4kXpOQLdNdrE1DR7lBNK9oL7OuE20QHSIM6";
         async function fetchHadith() {
             const box = document.getElementById('hadith-box');
