@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /transit.html
+Disallow: /islam.html
+Disallow: /downloads.html
+
+Sitemap: https://weebokage.com/sitemap.xml
