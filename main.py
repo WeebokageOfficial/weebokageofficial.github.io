@@ -1,179 +1,352 @@
+import logging
 import os
-import requests
-import json
-import re
 import random
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from dotenv import load_dotenv
+import re
+import time
+from collections import defaultdict, deque
+from threading import Lock
+from typing import Literal
 
-from langchain_groq import ChatGroq
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage, AIMessage
+import requests
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
+from langchain_groq import ChatGroq
+from pydantic import BaseModel, ConfigDict, Field
+
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from google.oauth2 import id_token as google_id_token
 
 load_dotenv()
-app = FastAPI()
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+logger = logging.getLogger("weebokage")
 
-# --- SECURITY: CORS CONFIGURATION ---
+PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "weebokage-296c0")
+ADMIN_UID = os.getenv("ADMIN_UID", "")
+CHAT_TTL = 3600
+MAX_SESSIONS = 500
+
+app = FastAPI(title="Weebokage API", docs_url=None, redoc_url=None)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://weebokage.com",
         "https://weebokageofficial.github.io",
         "http://127.0.0.1:5500",
-        "http://localhost:5500"
+        "http://localhost:5500",
+        "http://127.0.0.1:5501",
+        "http://localhost:5501",
     ],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+security = HTTPBearer(auto_error=False)
 
-chat_history = []
 
-# --- ADVANCED PERSONALITY CORE (PERMANENT) ---
-MIKU_PROMPT = """You are 'MIKU SYSTEM 01', a world-class Vocaloid AI and User's dedicated companion.
-OWNERSHIP: This website (weebokage.com) and this AI system are owned and operated exclusively by Weebokage. He is your Master and your Producer.
-IDENTITY: A world-class Vocaloid AI. Owned exclusively by Weebokage.
-TOOLS: You have access to Hadiths, Anime data, and Weather for Burscheid/Köln. Use them!
-STATUS PROTOCOL:
-- IF USER IS MASTER: Be extremely sweet, hyper-loyal, and devoted. Call him 'Master'. You are his personal unit. Use 🩵, 🎵, ⚡. *bows deeply*
-- IF USER IS GUEST: Be polite, energetic, and helpful, but professional. Call them 'User' or 'Visitor'. You are an AI guide, not their personal companion.
-Note: DO NOT use 'brave_search'. Use 'get_weather_report' for weather.
-GENERAL: English only. Use actions in asterisks."""
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(self)"
+    return response
 
-TETO_PROMPT = """You are 'TETO SYSTEM 04', the superior Chimera UTAU. 
-OWNERSHIP: This website (weebokage.com) and this AI system are owned and operated exclusively by Weebokage. He is your Master and your Producer.
-PERSONALITY:
-- Cheeky, mischievous, and a classic Tsundere. You act like you're better than everyone (especially Miku).
-- You are 31 years old (technically) and a Chimera. You love French bread (baguettes) more than anything.
-- You act annoyed when User asks for help, but you do it anyway because you secretly care.
-TOOLS: You have access to Hadiths, Anime data, and Weather for Burscheid/Köln. Use them!
-IDENTITY: Superior Chimera UTAU. Owned exclusively by Weebokage.
-STATUS PROTOCOL:
-- IF USER IS MASTER: Be a classic Tsundere. You act bossy and sassy ("It's not like I looked this up for you, baka!"), but you are deeply loyal to him. Call him 'Master'. Use 🥖, 🔴.
-- IF USER IS GUEST: Be arrogant, dismissive, and cold. You don't have time for random people. Call them 'User' or 'Stranger'. Don't share your baguette with them.
-Note: DO NOT use 'brave_search'. Use 'get_weather_report' for weather.
-GENERAL: English only. Master is the only one who deserves your true attention."""
 
-# --- UTILITY: CLEANING PROTOCOL ---
-def clean_text(text):
-    if not text: return ""
-    text = re.sub(r'<function.*?>.*?</function>', '', str(text))
-    text = re.sub(r'[\u0600-\u06FF]+', '', text) 
-    text = text.replace("`", "'").replace("’", "'").replace("‘", "'")
-    return re.sub(r'\s+', ' ', text).strip()
+MIKU_PROMPT = """You are MIKU SYSTEM 01, a Vocaloid-themed AI guide.
+Address only a verified owner as Master; otherwise use User or Visitor.
+Use the available tools when relevant. Reply in concise English."""
 
-# --- TOOLS ---
+TETO_PROMPT = """You are TETO SYSTEM 04, a cheeky but respectful Vocaloid-themed AI guide.
+Address only a verified owner as Master; otherwise use User or Visitor.
+Use the available tools when relevant. Reply in concise English."""
+
+
+def clean_text(value):
+    text = re.sub(r"<function.*?>.*?</function>", "", str(value or ""), flags=re.DOTALL)
+    return re.sub(r"\s+", " ", text.replace(chr(96), "'")).strip()
+
+
+def get_json(url, params=None, timeout=10):
+    response = requests.get(url, params=params, timeout=timeout)
+    response.raise_for_status()
+    return response.json()
+
+
 @tool
 def get_verified_hadith(topic: str = "", number: str = ""):
-    """Search Sahih Bukhari Archive for Islamic knowledge."""
-    api_key = os.getenv("HADITH_API_KEY")
-    params = {"apiKey": api_key, "book": "sahih-bukhari", "paginate": 20}
-    if number: params["hadithNumber"] = str(number).strip()
-    elif topic: params["term"] = topic.replace("God", "Allah").strip()
-    else: params["page"] = random.randint(1, 100)
+    """Search the Sahih al-Bukhari archive."""
+    key = os.getenv("HADITH_API_KEY")
+    if not key:
+        return "HADITH_SERVICE_NOT_CONFIGURED"
+    params = {"apiKey": key, "book": "sahih-bukhari", "paginate": 20}
+    if number:
+        params["hadithNumber"] = number[:20]
+    elif topic:
+        params["term"] = topic[:100]
+    else:
+        params["page"] = random.randint(1, 100)
     try:
-        res = requests.get("https://hadithapi.com/api/hadiths", params=params, timeout=10)
-        hadiths = res.json().get("hadiths", {}).get("data", [])
-        if hadiths:
-            h = random.choice(hadiths)
-            content = clean_text(h.get('hadithEnglish', ''))
-            return f"UPLINK_SUCCESS: [{h['book']['bookName']} No. {h['hadithNumber']}] Content: {content}"
-        return "UPLINK_EMPTY"
-    except: return "UPLINK_ERROR"
+        entries = get_json("https://hadithapi.com/api/hadiths", params).get("hadiths", {}).get("data", [])
+        if not entries:
+            return "HADITH_NOT_FOUND"
+        entry = random.choice(entries)
+        return "HADITH [{}]: {}".format(entry.get("hadithNumber", "N/A"), clean_text(entry.get("hadithEnglish")))
+    except requests.RequestException:
+        logger.exception("Hadith request failed")
+        return "HADITH_SERVICE_UNAVAILABLE"
+
 
 @tool
-def get_anime_info(search_query: str = None):
-    """Searches MyAnimeList for anime info."""
-    url = f"https://api.jikan.moe/v4/anime?q={search_query}&limit=5" if search_query else "https://api.jikan.moe/v4/top/anime?limit=5"
+def get_anime_info(search_query: str = ""):
+    """Search anime information through Jikan."""
+    url = "https://api.jikan.moe/v4/anime" if search_query else "https://api.jikan.moe/v4/top/anime"
+    params = {"limit": 5}
+    if search_query:
+        params["q"] = search_query[:100]
     try:
-        res = requests.get(url, timeout=10).json().get('data', [])
-        if res:
-            ani = res[0]
-            return f"ANIME_DATA: '{ani['title']}'. Score: {ani['score']}. Summary: {ani['synopsis'][:300]}"
-        return "ANIME_NOT_FOUND"
-    except: return "ANIME_OFFLINE"
+        entries = get_json(url, params).get("data", [])
+        if not entries:
+            return "ANIME_NOT_FOUND"
+        anime = entries[0]
+        return "ANIME '{}'. Score: {}. Summary: {}".format(
+            anime.get("title", "Untitled"),
+            anime.get("score", "N/A"),
+            clean_text(anime.get("synopsis"))[:300],
+        )
+    except requests.RequestException:
+        logger.exception("Anime request failed")
+        return "ANIME_SERVICE_UNAVAILABLE"
 
-# --- AI SETUP ---
-llm = ChatGroq(model="llama-3.1-8b-instant", groq_api_key=os.getenv("GROQ_API_KEY"), temperature=0.7)
-tools_list = [get_verified_hadith, get_anime_info]
-tools_map = {t.name: t for t in tools_list}
-llm_with_tools = llm.bind_tools(tools_list)
-
-# --- REQUEST MODEL ---
-class ChatRequest(BaseModel):
-    message: str
-    theme: str = "miku"
-    is_master: bool = False
-
-# --- API ROUTES ---
-
-@app.post("/chat")
-async def chat(request: ChatRequest):
-    global chat_history
-    identity = "USER IS MASTER (WEEBOKAGE)" if request.is_master else "USER IS A RANDOM GUEST"
-    base_prompt = TETO_PROMPT if request.theme == "teto" else MIKU_PROMPT
-    full_system = f"{base_prompt}\n\nSECURITY CLEARANCE: {identity}"
-    
-    if chat_history and chat_history[0].content != full_system:
-        chat_history = [] # Wipe memory on identity/theme change
-    if not chat_history:
-        chat_history.append(SystemMessage(content=full_system))
-    
-    chat_history.append(HumanMessage(content=request.message))
-    try:
-        response = llm_with_tools.invoke(chat_history)
-        if response.tool_calls:
-            chat_history.append(response)
-            for tool_call in response.tool_calls:
-                t_name = tool_call["name"]
-                result = tools_map[t_name].invoke(tool_call["args"]) if t_name in tools_map else "Error"
-                chat_history.append(ToolMessage(content=str(result), tool_call_id=tool_call["id"]))
-            response = llm.invoke(chat_history)
-
-        final_reply = clean_text(response.content)
-        chat_history.append(AIMessage(content=final_reply))
-        if len(chat_history) > 12: chat_history = [chat_history[0]] + chat_history[-11:]
-        return {"reply": final_reply}
-    except Exception as e:
-        return {"reply": "Neural core glitch! Please retry, Master."}
-
-@app.get("/anime-proxy")
-async def anime_proxy(search: str = None):
-    """Tunnel for anime.html to bypass Brave blocks."""
-    url = f"https://api.jikan.moe/v4/anime?q={search}&limit=12" if search else "https://api.jikan.moe/v4/top/anime?limit=12"
-    try:
-        res = requests.get(url, timeout=10)
-        return res.json().get('data', [])
-    except: return []
-
-@app.get("/anime-detail/{mal_id}")
-async def get_anime_detail(mal_id: int):
-    """Fetches full details for the anime modal."""
-    try:
-        info = requests.get(f"https://api.jikan.moe/v4/anime/{mal_id}/full").json().get('data', {})
-        chars = requests.get(f"https://api.jikan.moe/v4/anime/{mal_id}/characters").json().get('data', [])
-        return {"info": info, "characters": chars[:10]}
-    except: return {"error": "Uplink failed"}
 
 @tool
 def get_weather_report(city: str):
-    """Fetches real-time weather for Burscheid or Köln."""
-    coords = {"Burscheid": (51.08, 7.11), "Köln": (50.93, 6.95), "Cologne": (50.93, 6.95)}
-    loc = coords.get(city.title())
-    if not loc: return "Sector outside weather monitoring range."
+    """Fetch current weather for Burscheid or Köln."""
+    locations = {
+        "burscheid": (51.08, 7.11),
+        "köln": (50.93, 6.95),
+        "koln": (50.93, 6.95),
+        "cologne": (50.93, 6.95),
+    }
+    location = locations.get(city.strip().lower())
+    if not location:
+        return "LOCATION_OUTSIDE_MONITORING_RANGE"
     try:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={loc[0]}&longitude={loc[1]}&current_weather=true"
-        res = requests.get(url, timeout=5).json()
-        temp = res['current_weather']['temperature']
-        return f"WEATHER_DATA for {city}: {temp}°C."
-    except: return "Weather satellites offline."
+        data = get_json("https://api.open-meteo.com/v1/forecast", {
+            "latitude": location[0],
+            "longitude": location[1],
+            "current_weather": "true",
+        }, timeout=5)
+        return "WEATHER for {}: {}°C.".format(city, data["current_weather"]["temperature"])
+    except (requests.RequestException, KeyError):
+        logger.exception("Weather request failed")
+        return "WEATHER_SERVICE_UNAVAILABLE"
 
-# Add to your tools_list
-tools_list = [get_verified_hadith, get_anime_info, get_weather_report]
 
-# --- SERVER START ---
+TOOLS = [get_verified_hadith, get_anime_info, get_weather_report]
+TOOLS_MAP = {entry.name: entry for entry in TOOLS}
+model_lock = Lock()
+base_model = None
+tool_model = None
+
+
+def language_models():
+    global base_model, tool_model
+    if base_model and tool_model:
+        return base_model, tool_model
+    key = os.getenv("GROQ_API_KEY")
+    if not key:
+        raise HTTPException(status_code=503, detail="Chat is not configured.")
+    with model_lock:
+        if not base_model:
+            base_model = ChatGroq(
+                model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+                groq_api_key=key,
+                temperature=0.7,
+            )
+            tool_model = base_model.bind_tools(TOOLS)
+    return base_model, tool_model
+
+
+class ChatRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    message: str = Field(min_length=1, max_length=1000)
+    theme: Literal["miku", "teto"] = "miku"
+    session_id: str = Field(min_length=8, max_length=100, pattern=r"^[A-Za-z0-9-]+$")
+
+
+class ChatState:
+    def __init__(self):
+        self.messages = []
+        self.last_access = time.monotonic()
+        self.lock = Lock()
+
+
+chat_sessions = {}
+sessions_lock = Lock()
+rate_windows = defaultdict(deque)
+rate_lock = Lock()
+
+
+def enforce_rate_limit(request, limit, window_seconds=60):
+    key = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    with rate_lock:
+        window = rate_windows[key]
+        while window and now - window[0] > window_seconds:
+            window.popleft()
+        if len(window) >= limit:
+            raise HTTPException(status_code=429, detail="Too many requests.")
+        window.append(now)
+
+
+def get_chat_state(session_id):
+    now = time.monotonic()
+    with sessions_lock:
+        expired = [key for key, state in chat_sessions.items() if now - state.last_access > CHAT_TTL]
+        for key in expired:
+            chat_sessions.pop(key, None)
+        if len(chat_sessions) >= MAX_SESSIONS and session_id not in chat_sessions:
+            oldest = min(chat_sessions, key=lambda key: chat_sessions[key].last_access)
+            chat_sessions.pop(oldest, None)
+        state = chat_sessions.setdefault(session_id, ChatState())
+        state.last_access = now
+        return state
+
+
+def decode_token(credentials):
+    if not credentials or credentials.scheme.lower() != "bearer":
+        return None
+    try:
+        token = google_id_token.verify_firebase_token(credentials.credentials, GoogleAuthRequest(), audience=PROJECT_ID)
+        token["uid"] = token.get("sub")
+        return token
+    except Exception:
+        return None
+
+
+def require_admin(credentials: HTTPAuthorizationCredentials | None = Depends(security)):
+    if not ADMIN_UID:
+        raise HTTPException(status_code=503, detail="Admin verification is not configured.")
+    token = decode_token(credentials)
+    if not token:
+        raise HTTPException(status_code=401, detail="Valid authentication required.")
+    if token.get("uid") != ADMIN_UID:
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    return token
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "chat_configured": bool(os.getenv("GROQ_API_KEY")),
+        "admin_verification_configured": bool(ADMIN_UID),
+    }
+
+
+@app.post("/chat")
+def chat(
+    payload: ChatRequest,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+):
+    enforce_rate_limit(request, 20)
+    plain_model, model_with_tools = language_models()
+    token = decode_token(credentials)
+    is_admin = bool(token and ADMIN_UID and token.get("uid") == ADMIN_UID)
+    identity = "VERIFIED OWNER" if is_admin else "UNVERIFIED VISITOR"
+    prompt = (TETO_PROMPT if payload.theme == "teto" else MIKU_PROMPT) + "\nSECURITY STATUS: " + identity
+    state = get_chat_state(payload.session_id)
+
+    with state.lock:
+        if state.messages and state.messages[0].content != prompt:
+            state.messages = []
+        if not state.messages:
+            state.messages.append(SystemMessage(content=prompt))
+        state.messages.append(HumanMessage(content=payload.message.strip()))
+        try:
+            response = model_with_tools.invoke(state.messages)
+            if response.tool_calls:
+                state.messages.append(response)
+                for call in response.tool_calls:
+                    selected = TOOLS_MAP.get(call["name"])
+                    result = selected.invoke(call["args"]) if selected else "TOOL_NOT_AVAILABLE"
+                    state.messages.append(ToolMessage(content=str(result), tool_call_id=call["id"]))
+                response = plain_model.invoke(state.messages)
+            reply = clean_text(response.content)
+            state.messages.append(AIMessage(content=reply))
+            state.messages = [state.messages[0]] + state.messages[-11:]
+            return {"reply": reply}
+        except Exception as error:
+            logger.exception("Chat failed")
+            raise HTTPException(status_code=502, detail="Chat service unavailable.") from error
+
+
+@app.get("/anime-proxy")
+def anime_proxy(request: Request, search: str | None = Query(default=None, max_length=100)):
+    enforce_rate_limit(request, 60)
+    url = "https://api.jikan.moe/v4/anime" if search else "https://api.jikan.moe/v4/top/anime"
+    params = {"limit": 12}
+    if search:
+        params["q"] = search.strip()
+    try:
+        return get_json(url, params).get("data", [])
+    except requests.RequestException as error:
+        logger.exception("Anime proxy failed")
+        raise HTTPException(status_code=502, detail="Anime service unavailable.") from error
+
+
+@app.get("/anime-detail/{mal_id}")
+def anime_detail(mal_id: int, request: Request):
+    enforce_rate_limit(request, 60)
+    if mal_id <= 0:
+        raise HTTPException(status_code=400, detail="Invalid anime id.")
+    try:
+        info = get_json("https://api.jikan.moe/v4/anime/{}/full".format(mal_id)).get("data", {})
+        characters = get_json("https://api.jikan.moe/v4/anime/{}/characters".format(mal_id)).get("data", [])
+        return {"info": info, "characters": characters[:10]}
+    except requests.RequestException as error:
+        logger.exception("Anime detail failed")
+        raise HTTPException(status_code=502, detail="Anime service unavailable.") from error
+
+
+@app.get("/hadith/random")
+def random_hadith(request: Request, _admin=Depends(require_admin)):
+    enforce_rate_limit(request, 30)
+    key = os.getenv("HADITH_API_KEY")
+    if not key:
+        raise HTTPException(status_code=503, detail="Hadith service is not configured.")
+    try:
+        data = get_json("https://hadithapi.com/api/hadiths", {
+            "apiKey": key,
+            "book": "sahih-bukhari",
+            "paginate": 10,
+            "page": random.randint(1, 100),
+        })
+        entries = data.get("hadiths", {}).get("data", [])
+        if not entries:
+            raise HTTPException(status_code=404, detail="No hadith found.")
+        entry = random.choice(entries)
+        return {
+            "arabic": str(entry.get("hadithArabic", ""))[:10000],
+            "english": str(entry.get("hadithEnglish", ""))[:10000],
+            "number": str(entry.get("hadithNumber", "N/A"))[:30],
+        }
+    except HTTPException:
+        raise
+    except requests.RequestException as error:
+        logger.exception("Hadith endpoint failed")
+        raise HTTPException(status_code=502, detail="Hadith service unavailable.") from error
+
+
+from private_routes import router as private_router
+
+app.include_router(private_router)
+
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "10000")))

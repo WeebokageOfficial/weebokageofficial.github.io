@@ -3,176 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Weebokage's Archive and Dashboard</title>
     <meta name="description" content="Welcome to my digital terminal. Explore my personal blog, anime database, Islamic archives, and classic arcade modules.">
-    <link rel="stylesheet" href="style.css?v=11.4">
+    <link rel="stylesheet" href="style.css?v=13.0">
+    <link rel="stylesheet" href="responsive.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'miku';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
-    </script>
+    <script src="site.js?v=1.0"></script>
 </head>
 <body>
-
-    <div class="theme-switch-wrapper">
-        <span onclick="setTheme('miku')" style="cursor:pointer; font-size: 1.2rem;">🩵</span>
-        <label class="switch"><input type="checkbox" id="theme-toggle" onclick="themeToggle()"><span class="slider"></span></label>
-        <span onclick="setTheme('teto')" style="cursor:pointer; font-size: 1.2rem;">🥖</span>
+    <div class="theme-switch-wrapper" aria-label="Theme selection">
+        <button class="icon-button" onclick="setTheme('miku')" aria-label="Use Miku theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🩵</button>
+        <label class="switch" aria-label="Toggle theme"><input type="checkbox" id="theme-toggle" onclick="themeToggle()"><span class="slider"></span></label>
+        <button class="icon-button" onclick="setTheme('teto')" aria-label="Use Teto theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🥖</button>
     </div>
 
-    <nav>
-    <div class="links">
-        <a href="index.html">Home</a>
-        <!-- Both of these are now hidden from guests -->
-        <a href="transit.html" class="admin-hide" id="nav-transit">Transit</a>
-        <a href="islam.html" class="admin-hide" id="nav-islam">Islam</a>
-        
-        <a href="anime.html">Anime</a>
-        <a href="games.html">Games</a>
-        <a href="credits.html">Credits</a>
-        <a href="login.html" id="admin-btn">Admin</a>
-    </div>
-</nav>
-    
-    <div class="container">
-        <div class="card profile-card">
-            <div class="profile-avatar"></div>
+    <nav aria-label="Main navigation">
+        <div class="links">
+            <a href="index.html">Home</a>
+            <a href="transit.html" class="admin-hide" id="nav-transit">Transit</a>
+            <a href="islam.html" class="admin-hide" id="nav-islam">Islam</a>
+            <a href="anime.html">Anime</a>
+            <a href="games.html">Games</a>
+            <a href="credits.html">Credits</a>
+            <a href="login.html" id="admin-btn">Admin</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="card profile-card">
+            <div class="profile-avatar" role="img" aria-label="Weebokage profile picture"></div>
             <div class="profile-info">
                 <h1>Weebokage</h1>
-                <p>Digital Workspace & Archive. Welcome to my personal digital sector.</p>
+                <p>Digital Workspace &amp; Archive. Welcome to my personal digital sector.</p>
                 <div class="profile-tags" style="margin-top:15px;">
                     <span class="tag">DEVELOPER</span>
                     <span class="tag">VOCALOID</span>
                     <span class="tag">ARCHIVIST</span>
                 </div>
-                <a href="https://www.youtube.com/@Weebokage/featured" target="_blank" class="btn" style="background:#FF0000; color:white; margin-top:20px; border:none;">
-                    <i class="fab fa-youtube"></i> YouTube
+                <a href="https://www.youtube.com/@Weebokage/featured" target="_blank" rel="noopener noreferrer" class="btn" style="background:#f00;color:#fff;margin-top:20px;border:none;">
+                    <i class="fab fa-youtube" aria-hidden="true"></i> YouTube
                 </a>
             </div>
+        </section>
+
+        <h2 style="color:var(--primary);margin:50px 0 25px;border-left:4px solid var(--primary);padding-left:15px;letter-spacing:2px;">LATEST UPDATES</h2>
+        <div id="blog-feed" aria-live="polite"><p class="status-message">Loading updates…</p></div>
+
+        <h2 style="color:var(--primary);margin:60px 0 25px;border-left:4px solid var(--primary);padding-left:15px;letter-spacing:2px;">DIGITAL GUESTBOOK</h2>
+        <section class="card" aria-labelledby="guestbook-heading">
+            <h3 id="guestbook-heading" class="sr-only">Write a guestbook message</h3>
+            <div class="input-group">
+                <label class="sr-only" for="guestName">Your alias</label>
+                <input type="text" id="guestName" placeholder="Your Alias" maxlength="40" autocomplete="nickname">
+                <i class="fas fa-user-tag" aria-hidden="true"></i>
+            </div>
+            <div class="input-group">
+                <label class="sr-only" for="guestMsg">Message</label>
+                <textarea id="guestMsg" placeholder="Leave a message…" maxlength="500" style="height:100px;padding-top:15px!important;"></textarea>
+                <i class="fas fa-comment-dots textarea-icon" aria-hidden="true"></i>
+            </div>
+            <button onclick="postComment()" id="commentBtn" class="btn" style="width:100%;height:50px;letter-spacing:2px;">DEPLOY MESSAGE</button>
+            <p id="comment-status" role="status" style="margin-top:12px;"></p>
+        </section>
+        <div id="comments-feed" aria-live="polite"></div>
+
+        <footer style="text-align:center;margin-top:80px;opacity:.5;font-size:.8rem;letter-spacing:2px;padding-bottom:110px;">
+            <p>&copy; 2026 WEEBOKAGE. All rights reserved.</p>
+        </footer>
+    </main>
+
+    <aside id="miku-chat-container" style="position:fixed;bottom:20px;left:20px;z-index:2000;" aria-label="AI assistant">
+        <div id="miku-window" hidden role="dialog" aria-labelledby="ai-title" style="display:none;width:350px;height:500px;background:rgba(10,11,16,.95);backdrop-filter:blur(20px);border:2px solid var(--primary);border-radius:20px;flex-direction:column;overflow:hidden;box-shadow:0 0 30px var(--primary-glow);margin-bottom:15px;">
+            <div style="background:var(--primary);color:#000;padding:12px;font-weight:bold;display:flex;justify-content:space-between;">
+                <span id="ai-title">MIKU SYSTEM 01</span>
+                <button class="icon-button" onclick="toggleMiku()" aria-label="Close chat" style="cursor:pointer;background:none;border:0;font-size:1.3rem;">&times;</button>
+            </div>
+            <div id="miku-msgs" aria-live="polite" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:15px;font-size:.9rem;"></div>
+            <div style="padding:15px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.1);">
+                <label class="sr-only" for="miku-input">Chat message</label>
+                <input type="text" id="miku-input" maxlength="1000" placeholder="Type here…" style="margin:0;border-radius:12px;">
+                <button onclick="askMiku()" class="btn" aria-label="Send message" style="width:50px;height:50px;border-radius:50%;padding:0;"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+            </div>
         </div>
+        <button id="miku-btn" class="icon-button" onclick="toggleMiku()" aria-label="Open AI chat" aria-expanded="false" style="width:70px;height:70px;border-radius:50%;background-image:var(--pfp);background-size:cover;border:3px solid var(--primary);cursor:pointer;box-shadow:0 0 20px var(--primary-glow);"></button>
+    </aside>
 
-        <h2 style="color:var(--primary); margin: 50px 0 25px 0; border-left: 4px solid var(--primary); padding-left: 15px; letter-spacing: 2px;">LATEST UPDATES</h2>
-        <div id="blog-feed"></div>
-
-        <h2 style="color:var(--primary); margin: 60px 0 25px 0; border-left: 4px solid var(--primary); padding-left: 15px; letter-spacing: 2px;">DIGITAL GUESTBOOK</h2>
-        <div class="card">
-            <div class="input-group"><input type="text" id="guestName" placeholder="Your Alias"><i class="fas fa-user-tag"></i></div>
-            <div class="input-group"><textarea id="guestMsg" placeholder="Leave a message..." style="height: 100px; padding-top: 15px !important;"></textarea><i class="fas fa-comment-dots textarea-icon"></i></div>
-            <button onclick="postComment()" id="commentBtn" class="btn" style="width: 100%; height: 50px; letter-spacing: 2px;">DEPLOY MESSAGE</button>
-        </div>
-        <div id="comments-feed"></div>
-        <div style="text-align: center; margin-top: 80px; opacity: 0.3; font-size: 0.8rem; letter-spacing: 2px; padding-bottom: 40px;"><p>&copy; 2026 WEEBOKAGE. All rights reserved.</p></div>
-    </div>
-
-    <!-- AI CHAT UI -->
-    <div id="miku-chat-container" style="position: fixed; bottom: 20px; left: 20px; z-index: 2000;">
-        <div id="miku-window" style="display: none; width: 350px; height: 500px; background: rgba(10,11,16,0.95); backdrop-filter: blur(20px); border: 2px solid var(--primary); border-radius: 20px; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px var(--primary-glow); margin-bottom: 15px;">
-            <div style="background: var(--primary); color: black; padding: 12px; font-weight: bold; display: flex; justify-content: space-between;"><span id="ai-title">MIKU SYSTEM 01</span><span onclick="toggleMiku()" style="cursor: pointer;">&times;</span></div>
-            <div id="miku-msgs" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; font-size: 0.9rem;"></div>
-            <div style="padding: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1);"><input type="text" id="miku-input" placeholder="Type here..." style="margin:0; border-radius: 12px;"><button onclick="askMiku()" class="btn" style="width: 50px; height: 50px; border-radius: 50%; padding: 0;"><i class="fas fa-paper-plane"></i></button></div>
-        </div>
-        <div id="miku-btn" onclick="toggleMiku()" style="width: 70px; height: 70px; border-radius: 50%; background-image: var(--pfp); background-size: cover; border: 3px solid var(--primary); cursor: pointer; box-shadow: 0 0 20px var(--primary-glow);"></div>
-    </div>
-
+    <script src="chat.js?v=1.0"></script>
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyAj4pBH0zjbCIbUHp0ldmW8eU8pJTZnquo", authDomain: "weebokage-296c0.firebaseapp.com", projectId: "weebokage-296c0", storageBucket: "weebokage-296c0.firebasestorage.app", messagingSenderId: "192569800499", appId: "1:192569800499:web:4c5ef67242b7fdd0b2b046" };
-        firebase.initializeApp(firebaseConfig);
+        "use strict";
+        Weebokage.initFirebase();
         const db = firebase.firestore();
 
-        let isMaster = false;
-        firebase.auth().onAuthStateChanged(user => {
-            const adminBtn = document.getElementById('admin-btn');
-            const islamNav = document.getElementById('nav-islam');
-            if (user) {
-                isMaster = true;
-                if(islamNav) islamNav.style.setProperty('display', 'inline-block', 'important');
-                adminBtn.innerText = "Logoff";
-                adminBtn.href = "javascript:void(0)";
-                adminBtn.onclick = () => { firebase.auth().signOut().then(() => location.reload()); };
-            } else {
-                isMaster = false;
-                if(islamNav) islamNav.style.setProperty('display', 'none', 'important');
-                adminBtn.innerText = "Admin";
-                adminBtn.href = "login.html";
-                adminBtn.onclick = null;
+        Weebokage.setTheme(localStorage.getItem("theme") || "miku");
+        WeebokageChat.initialize();
+        Weebokage.bindAuthNavigation({ onChange: (user) => WeebokageChat.setUser(user) });
+
+        function renderPost(data) {
+            const card = document.createElement("article");
+            card.className = "card";
+            const date = document.createElement("time");
+            date.style.cssText = "color:var(--accent);font-size:.8rem;font-weight:bold";
+            if (data.timestamp?.toDate) {
+                const value = data.timestamp.toDate();
+                date.dateTime = value.toISOString();
+                date.textContent = value.toLocaleDateString();
             }
-            updateGreeting();
+            const title = document.createElement("h2");
+            title.textContent = String(data.title || "Untitled").slice(0, 120);
+            card.append(date, title);
+            const imageUrl = Weebokage.safeUrl(data.image);
+            if (imageUrl) {
+                const image = document.createElement("img");
+                image.src = imageUrl;
+                image.alt = "";
+                image.loading = "lazy";
+                image.decoding = "async";
+                image.className = "miku-img";
+                card.appendChild(image);
+            }
+            const content = document.createElement("p");
+            content.textContent = String(data.content || "");
+            content.style.cssText = "margin-top:10px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere";
+            card.appendChild(content);
+            return card;
+        }
+
+        db.collection("posts").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+            const feed = document.getElementById("blog-feed");
+            feed.replaceChildren(...snapshot.docs.map((documentSnapshot) => renderPost(documentSnapshot.data())));
+            if (!snapshot.size) feed.innerHTML = '<p class="status-message">No updates yet.</p>';
+        }, () => {
+            document.getElementById("blog-feed").innerHTML = '<p class="status-message">Updates are currently unavailable.</p>';
         });
 
-        function setTheme(t) {
-            const oldTheme = document.documentElement.getAttribute('data-theme');
-            document.documentElement.setAttribute('data-theme', t); localStorage.setItem('theme', t);
-            document.getElementById('theme-toggle').checked = (t === 'teto');
-            document.getElementById('ai-title').innerText = (t === 'teto') ? "TETO SYSTEM 04" : "MIKU SYSTEM 01";
-            if(oldTheme !== t) updateGreeting();
+        async function postComment() {
+            const name = document.getElementById("guestName").value.trim();
+            const message = document.getElementById("guestMsg").value.trim();
+            const status = document.getElementById("comment-status");
+            const button = document.getElementById("commentBtn");
+            if (!name || !message) {
+                status.textContent = "Please enter an alias and a message.";
+                return;
+            }
+            button.disabled = true;
+            status.textContent = "Sending…";
+            try {
+                await db.collection("comments").add({
+                    name: name.slice(0, 40),
+                    msg: message.slice(0, 500),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById("guestName").value = "";
+                document.getElementById("guestMsg").value = "";
+                status.textContent = "Message sent.";
+            } catch (_) {
+                status.textContent = "Message could not be sent.";
+            } finally {
+                button.disabled = false;
+            }
         }
-        function updateGreeting() {
-            const t = localStorage.getItem('theme') || 'miku';
-            const msgBox = document.getElementById('miku-msgs');
-            if(!msgBox) return;
-            msgBox.innerHTML = "";
-            let g = t === 'teto' ? (isMaster ? "Master! Teto 04 active. 🥖" : "User! Teto 04 active. 🥖") : (isMaster ? "Welcome back, Master! Miku 01 at your service! 🩵" : "Hello! Miku 01 is online, User! 🩵");
-            msgBox.innerHTML = `<div style="background: rgba(57, 197, 187, 0.1); padding: 12px; border-radius: 12px; border: 1px solid var(--primary); align-self: flex-start; max-width: 85%;">${g}</div>`;
+
+        function renderComment(data) {
+            const card = document.createElement("article");
+            card.className = "card";
+            card.style.cssText = "padding:20px;border-left:4px solid var(--primary);border-top:0;border-right:0;border-bottom:0;border-radius:0";
+            const name = document.createElement("strong");
+            name.textContent = String(data.name || "Anonymous").slice(0, 40);
+            const message = document.createElement("p");
+            message.textContent = String(data.msg || "").slice(0, 500);
+            message.style.cssText = "margin-top:5px;opacity:.9;white-space:pre-wrap;overflow-wrap:anywhere";
+            card.append(name, message);
+            return card;
         }
-        setTheme(localStorage.getItem('theme') || 'miku');
-        function themeToggle() { setTheme(document.getElementById('theme-toggle').checked ? 'teto' : 'miku'); }
 
-        async function askMiku() {
-    const inp = document.getElementById('miku-input');
-    const box = document.getElementById('miku-msgs');
-    const val = inp.value.trim();
-    if(!val) return;
-
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'miku';
-
-    box.innerHTML += `<div style="background: var(--primary); color: black; padding: 12px; border-radius: 12px; align-self: flex-end; max-width: 85%; font-weight: bold;">${val}</div>`;
-    inp.value = "";
-    
-    const load = document.createElement("div"); 
-    load.style.cssText = "background: rgba(57, 197, 187, 0.1); padding: 12px; border-radius: 12px; border: 1px solid var(--primary); align-self: flex-start;";
-    load.innerText = "..."; 
-    box.appendChild(load); 
-    box.scrollTop = box.scrollHeight;
-
-    try {
-        const res = await fetch("https://weebokageofficial-github-io.onrender.com/chat", { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            // WE SEND ALL 3 FIELDS TO PREVENT THE 422 ERROR
-            body: JSON.stringify({ 
-                message: String(val), 
-                theme: String(currentTheme),
-                is_master: Boolean(isMaster) // Uses the global isMaster variable
-            }) 
-        });
-        const data = await res.json(); 
-        load.innerText = data.reply || "Neural sync failed.";
-    } catch (e) { load.innerText = "Connection lost."; }
-    box.scrollTop = box.scrollHeight;
-}
-        document.getElementById('miku-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') askMiku(); });
-        function toggleMiku() { const win = document.getElementById('miku-window'); win.style.display = (win.style.display === 'none' || win.style.display === '') ? 'flex' : 'none'; }
-
-        db.collection("posts").orderBy("timestamp", "desc").onSnapshot(snaps => {
-            const feed = document.getElementById('blog-feed'); feed.innerHTML = "";
-            snaps.forEach(doc => {
-                const p = doc.data(); const d = p.timestamp ? new Date(p.timestamp.seconds * 1000).toLocaleDateString() : "";
-                feed.innerHTML += `<div class="card"><span style="color:var(--accent); font-size:0.8rem; font-weight:bold;">${d}</span><h2 style="color:var(--primary)">${p.title}</h2>${p.image ? `<img src="${p.image}" class="miku-img">` : ''}<p style="margin-top:10px; line-height:1.6; white-space:pre-wrap;">${p.content}</p></div>`;
-            });
-        });
-        function postComment() {
-            const n = document.getElementById('guestName').value; const m = document.getElementById('guestMsg').value;
-            if(!n || !m) return;
-            db.collection("comments").add({ name:n, msg:m, timestamp: firebase.firestore.FieldValue.serverTimestamp() }).then(() => { location.reload(); });
-        }
-        db.collection("comments").orderBy("timestamp", "desc").limit(10).onSnapshot(snaps => {
-            const feed = document.getElementById('comments-feed'); feed.innerHTML = "";
-            snaps.forEach(doc => { const c = doc.data(); feed.innerHTML += `<div class="card" style="padding:20px; border-left:4px solid var(--primary); border-top:none; border-right:none; border-bottom:none; border-radius:0;"><strong>${c.name}</strong><p style="margin-top:5px; opacity:0.9;">${c.msg}</p></div>`; });
+        db.collection("comments").orderBy("timestamp", "desc").limit(10).onSnapshot((snapshot) => {
+            document.getElementById("comments-feed").replaceChildren(
+                ...snapshot.docs.map((documentSnapshot) => renderComment(documentSnapshot.data()))
+            );
+        }, () => {
+            document.getElementById("comments-feed").innerHTML = '<p class="status-message">Guestbook messages are currently unavailable.</p>';
         });
     </script>
 </body>

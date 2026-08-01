@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function validPost() {
+      return request.resource.data.keys().hasOnly(['title', 'content', 'timestamp'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 10000
+        && request.resource.data.timestamp == request.time;
+    }
+
+    function validComment() {
+      return request.resource.data.keys().hasOnly(['name', 'msg', 'timestamp'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.msg is string
+        && request.resource.data.msg.size() > 0
+        && request.resource.data.msg.size() <= 500
+        && request.resource.data.timestamp == request.time;
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && validPost();
+      allow delete: if isSignedIn();
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if validComment();
+      allow update, delete: if isSignedIn();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

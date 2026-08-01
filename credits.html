@@ -3,115 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Credits | WEEBOKAGE</title>
-    <!-- Cache-Buster v5.0 -->
-    <link rel="stylesheet" href="style.css?v=5.0">
+    <meta name="description" content="Sources, ownership and technical credits for Weebokage.">
+    <link rel="stylesheet" href="style.css?v=13.0">
+    <link rel="stylesheet" href="responsive.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script>
-        // Theme Flash-Fix (Ensures correct colors load immediately)
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'miku';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="site.js?v=1.0"></script>
 </head>
 <body>
-
-    <!-- THEME SWITCHER -->
-    <div class="theme-switch-wrapper">
-        <span onclick="setTheme('miku')" style="cursor:pointer">🩵</span>
-        <label class="switch">
-            <input type="checkbox" id="theme-toggle" onclick="themeToggle()">
-            <span class="slider"></span>
-        </label>
-        <span onclick="setTheme('teto')" style="cursor:pointer">🥖</span>
+    <div class="theme-switch-wrapper" aria-label="Theme selection">
+        <button class="icon-button" onclick="setTheme('miku')" aria-label="Use Miku theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🩵</button>
+        <label class="switch" aria-label="Toggle theme"><input type="checkbox" id="theme-toggle" onclick="themeToggle()"><span class="slider"></span></label>
+        <button class="icon-button" onclick="setTheme('teto')" aria-label="Use Teto theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🥖</button>
     </div>
 
-   <nav>
-    <div class="links">
+    <nav aria-label="Main navigation"><div class="links">
         <a href="index.html">Home</a>
-        <!-- Both of these are now hidden from guests -->
         <a href="transit.html" class="admin-hide" id="nav-transit">Transit</a>
         <a href="islam.html" class="admin-hide" id="nav-islam">Islam</a>
-        
         <a href="anime.html">Anime</a>
         <a href="games.html">Games</a>
-        <a href="credits.html">Credits</a>
+        <a href="credits.html" aria-current="page">Credits</a>
         <a href="login.html" id="admin-btn">Admin</a>
-    </div>
-</nav>
+    </div></nav>
 
-    <div class="container">
-        <div style="text-align: center; margin-bottom: 50px;">
-            <h1 style="color: var(--primary); font-size: 3rem; letter-spacing: 4px; text-transform: uppercase;">Archive Sources</h1>
-            <p style="opacity: 0.6;">Ownership, Assets, and Art Credits</p>
-        </div>
-
-        <!-- Section 1: Ownership -->
-        <div class="card">
-            <h2 style="margin-bottom: 15px;"><i class="fas fa-user-shield"></i> Site Ownership</h2>
+    <main class="container">
+        <header style="text-align:center;margin-bottom:50px;">
+            <h1 style="color:var(--primary);font-size:clamp(2rem,10vw,3rem);letter-spacing:4px;text-transform:uppercase;overflow-wrap:anywhere;">Archive Sources</h1>
+            <p style="opacity:.7;">Ownership, Assets, and Art Credits</p>
+        </header>
+        <section class="card">
+            <h2><i class="fas fa-user-shield" aria-hidden="true"></i> Site Ownership</h2>
             <p>This website (<strong>weebokage.com</strong>) is owned and operated by <strong>Weebokage</strong>. All original content, site structure, and curated archives are managed under this identity.</p>
-        </div>
-
-        <!-- Section 2: Visual Credits -->
-        <div class="card">
-            <h2 style="margin-bottom: 15px;"><i class="fas fa-image"></i> Visual Credits</h2>
+        </section>
+        <section class="card">
+            <h2><i class="fas fa-image" aria-hidden="true"></i> Visual Credits</h2>
             <p><strong>Background Wallpapers:</strong> Mirrored via AlphaCoders and official Vocaloid media. All art belongs to their respective illustrators.</p>
-            <p style="margin-top: 10px;"><strong>Profile Imagery:</strong> Custom assets provided by Weebokage / YouTube profile archives.</p>
-            <p style="margin-top: 10px;"><strong>Vocaloids:</strong> Hatsune Miku is a property of <strong>Crypton Future Media</strong>. Kasane Teto is a property of <strong>Oyamano Mayo / TWINDRILL</strong>. This is a non-commercial fan project.</p>
-        </div>
-
-        <!-- Section 3: Technical Credits -->
-        <div class="card">
-            <h2 style="margin-bottom: 15px;"><i class="fas fa-code"></i> Technology Stack</h2>
-            <ul style="list-style: none;">
-                <li style="margin: 10px 0; padding-left: 15px; border-left: 3px solid var(--primary);">
-                    <strong>Hosting:</strong> GitHub Pages
-                </li>
-                <li style="margin: 10px 0; padding-left: 15px; border-left: 3px solid var(--primary);">
-                    <strong>Database:</strong> Google Firebase (Firestore)
-                </li>
-                <li style="margin: 10px 0; padding-left: 15px; border-left: 3px solid var(--primary);">
-                    <strong>Emulator:</strong> Ruffle (Flash Player)
-                </li>
-                <li style="margin: 10px 0; padding-left: 15px; border-left: 3px solid var(--primary);">
-                    <strong>Icons:</strong> Font Awesome 6.0
-                </li>
+            <p style="margin-top:10px;"><strong>Profile Imagery:</strong> Custom assets provided by Weebokage / YouTube profile archives.</p>
+            <p style="margin-top:10px;"><strong>Vocaloids:</strong> Hatsune Miku is a property of <strong>Crypton Future Media</strong>. Kasane Teto is a property of <strong>Oyamano Mayo / TWINDRILL</strong>. This is a non-commercial fan project.</p>
+        </section>
+        <section class="card">
+            <h2><i class="fas fa-code" aria-hidden="true"></i> Technology Stack</h2>
+            <ul style="list-style:none;">
+                <li style="margin:10px 0;padding-left:15px;border-left:3px solid var(--primary);"><strong>Hosting:</strong> GitHub Pages and Render</li>
+                <li style="margin:10px 0;padding-left:15px;border-left:3px solid var(--primary);"><strong>Database:</strong> Google Firebase / Firestore</li>
+                <li style="margin:10px 0;padding-left:15px;border-left:3px solid var(--primary);"><strong>Emulators:</strong> Ruffle and JS-DOS</li>
+                <li style="margin:10px 0;padding-left:15px;border-left:3px solid var(--primary);"><strong>Icons:</strong> Font Awesome 6.4.2</li>
             </ul>
-        </div>
-
-        <!-- Footer -->
-        <div style="text-align: center; margin-top: 60px; opacity: 0.4; font-size: 0.8rem; letter-spacing: 2px;">
-            <p>&copy; 2026 WEEBOKAGE. All rights reserved.</p>
-        </div>
-    </div>
+        </section>
+        <footer style="text-align:center;margin-top:60px;opacity:.5;font-size:.8rem;letter-spacing:2px;padding-bottom:100px;"><p>&copy; 2026 WEEBOKAGE. All rights reserved.</p></footer>
+    </main>
 
     <script>
-        // THEME ENGINE (Matches index.html)
-        const toggle = document.getElementById('theme-toggle');
-        function themeToggle() { setTheme(toggle.checked ? 'teto' : 'miku'); }
-        function setTheme(t) {
-            document.documentElement.setAttribute('data-theme', t);
-            localStorage.setItem('theme', t);
-            if(toggle) toggle.checked = (t === 'teto');
-        }
-        setTheme(localStorage.getItem('theme') || 'miku');
-        // --- ADMIN PERSISTENCE SCRIPT ---
-firebase.auth().onAuthStateChanged((user) => {
-    const islamTab = document.getElementById('nav-islam');
-    if (user) {
-        // If you are logged in, show the Islam tab
-        if(islamTab) {
-            islamTab.style.setProperty('display', 'inline-block', 'important');
-        }
-        console.log("Admin session active.");
-    } else {
-        // If not logged in, ensure it stays hidden
-        if(islamTab) {
-            islamTab.style.setProperty('display', 'none', 'important');
-        }
-    }
-});
+        "use strict";
+        Weebokage.initFirebase();
+        Weebokage.setTheme(localStorage.getItem("theme") || "miku");
+        Weebokage.bindAuthNavigation();
     </script>
 </body>
 </html>

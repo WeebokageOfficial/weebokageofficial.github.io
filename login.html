@@ -3,187 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal Access | WEEBOKAGE</title>
-    <!-- Cache-Buster v5.1 -->
-    <link rel="stylesheet" href="style.css?v=5.1">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin Login | WEEBOKAGE</title>
+    <link rel="stylesheet" href="style.css?v=13.0">
+    <link rel="stylesheet" href="responsive.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script>
-        // Smooth Theme Flash-Fix
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'miku';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
-    </script>
+    <script src="site.js?v=1.0"></script>
     <style>
-        /* Specific Styles for the Login Terminal */
-        .login-card {
-            max-width: 450px;
-            margin: 10vh auto;
-            text-align: center;
-            padding: 50px !important;
-            border-top: 5px solid var(--primary);
-        }
-
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .input-group i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--primary);
-            opacity: 0.6;
-            transition: 0.3s;
-        }
-
-        .pretty-input {
-            width: 100%;
-            padding: 15px 15px 15px 45px !important;
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 12px !important;
-            color: white !important;
-            font-family: 'Poppins', sans-serif;
-            outline: none !important;
-            transition: all 0.3s ease;
-        }
-
-        .pretty-input:focus {
-            border-color: var(--primary) !important;
-            background: rgba(255, 255, 255, 0.08) !important;
-            box-shadow: 0 0 15px var(--primary-glow) !important;
-        }
-
-        .pretty-input:focus + i {
-            color: var(--accent);
-            opacity: 1;
-            text-shadow: 0 0 10px var(--accent);
-        }
-
-        #err {
-            color: var(--primary);
-            display: none;
-            margin-top: 20px;
-            font-size: 0.8rem;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--primary);
-        }
+        .login-card { max-width:450px;margin:10vh auto;text-align:center;padding:50px!important;border-top:5px solid var(--primary); }
+        #err { color:#fff;display:none;margin-top:20px;font-size:.8rem;background:rgba(255,45,85,.18);padding:12px;border-radius:8px;border:1px solid #ff2d55; }
+        @media (max-width:500px) { .login-card { margin:5vh auto;padding:28px 20px!important; } }
     </style>
 </head>
 <body>
-
-    <!-- THEME TOGGLE -->
-    <div class="theme-switch-wrapper">
-        <span onclick="setTheme('miku')" style="cursor:pointer; font-size: 1.2rem;">🩵</span>
-        <label class="switch">
-            <input type="checkbox" id="theme-toggle" onclick="themeToggle()">
-            <span class="slider"></span>
-        </label>
-        <span onclick="setTheme('teto')" style="cursor:pointer; font-size: 1.2rem;">🥖</span>
+    <div class="theme-switch-wrapper" aria-label="Theme selection">
+        <button class="icon-button" onclick="setTheme('miku')" aria-label="Use Miku theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🩵</button>
+        <label class="switch" aria-label="Toggle theme"><input type="checkbox" id="theme-toggle" onclick="themeToggle()"><span class="slider"></span></label>
+        <button class="icon-button" onclick="setTheme('teto')" aria-label="Use Teto theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🥖</button>
     </div>
 
-    <!-- NAVIGATION -->
-   <nav>
-    <div class="links">
+    <nav aria-label="Main navigation"><div class="links">
         <a href="index.html">Home</a>
-        <!-- Both of these are now hidden from guests -->
         <a href="transit.html" class="admin-hide" id="nav-transit">Transit</a>
         <a href="islam.html" class="admin-hide" id="nav-islam">Islam</a>
-        
         <a href="anime.html">Anime</a>
         <a href="games.html">Games</a>
         <a href="credits.html">Credits</a>
-        <a href="login.html" id="admin-btn">Admin</a>
-    </div>
-</nav>
+        <a href="login.html" id="admin-btn" aria-current="page">Admin</a>
+    </div></nav>
 
-    <div class="container">
-        <!-- LOGIN TERMINAL -->
-        <div class="card login-card">
-            <div style="margin-bottom: 35px;">
-                <h1 style="color: var(--primary); font-size: 1.8rem; letter-spacing: 5px; text-transform: uppercase;">System Auth</h1>
-                <div style="width: 50px; height: 3px; background: var(--accent); margin: 10px auto; border-radius: 2px; box-shadow: 0 0 10px var(--accent);"></div>
-            </div>
-
-            <p style="font-size: 0.75rem; opacity: 0.5; margin-bottom: 25px; letter-spacing: 2px;">IDENTIFY TO DECRYPT ARCHIVE</p>
-
+    <main class="container">
+        <form class="card login-card" id="login-form">
+            <header style="margin-bottom:35px;">
+                <h1 style="color:var(--primary);font-size:clamp(1.4rem,8vw,1.8rem);letter-spacing:5px;text-transform:uppercase;overflow-wrap:anywhere;">System Auth</h1>
+                <div aria-hidden="true" style="width:50px;height:3px;background:var(--accent);margin:10px auto;border-radius:2px;box-shadow:0 0 10px var(--accent);"></div>
+            </header>
+            <p style="font-size:.75rem;opacity:.65;margin-bottom:25px;letter-spacing:2px;">IDENTIFY TO DECRYPT ARCHIVE</p>
             <div class="input-group">
-                <input type="text" id="email" class="pretty-input" placeholder="Vocaloid ID (Email)" autocomplete="off">
-                <i class="fas fa-user-circle"></i>
+                <label class="sr-only" for="email">Email address</label>
+                <input type="email" id="email" placeholder="Vocaloid ID (Email)" maxlength="254" autocomplete="username" required>
+                <i class="fas fa-user-circle" aria-hidden="true"></i>
             </div>
-
             <div class="input-group">
-                <input type="password" id="pass" class="pretty-input" placeholder="Access Key">
-                <i class="fas fa-fingerprint"></i>
+                <label class="sr-only" for="pass">Password</label>
+                <input type="password" id="pass" placeholder="Access Key" maxlength="4096" autocomplete="current-password" required>
+                <i class="fas fa-fingerprint" aria-hidden="true"></i>
             </div>
-
-            <button onclick="login()" id="loginBtn" class="btn" style="width: 100%; margin-top: 20px; height: 50px; letter-spacing: 2px;">
-                INITIALIZE
-            </button>
-
-            <p id="err"></p>
-        </div>
-
-        <p style="text-align: center; opacity: 0.3; font-size: 0.6rem; letter-spacing: 3px;">01_ENCRYPT_PROTOCOL_ACTIVE</p>
-    </div>
+            <button type="submit" id="loginBtn" class="btn" style="width:100%;margin-top:20px;height:50px;letter-spacing:2px;">INITIALIZE</button>
+            <p id="err" role="alert"></p>
+        </form>
+    </main>
 
     <script>
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = { 
-            apiKey: "AIzaSyAj4pBH0zjbCIbUHp0ldmW8eU8pJTZnquo", 
-            authDomain: "weebokage-296c0.firebaseapp.com", 
-            projectId: "weebokage-296c0", 
-            storageBucket: "weebokage-296c0.firebasestorage.app", 
-            messagingSenderId: "192569800499", 
-            appId: "1:192569800499:web:4c5ef67242b7fdd0b2b046" 
-        };
-        firebase.initializeApp(firebaseConfig);
+        "use strict";
+        Weebokage.initFirebase();
+        Weebokage.setTheme(localStorage.getItem("theme") || "miku");
+        const allowedDestinations = new Set(["downloads.html", "transit.html", "islam.html"]);
+        const requestedDestination = new URLSearchParams(window.location.search).get("next");
+        const destination = allowedDestinations.has(requestedDestination) ? requestedDestination : "downloads.html";
 
-        // --- THEME ENGINE ---
-        const toggle = document.getElementById('theme-toggle');
-        function themeToggle() { setTheme(toggle.checked ? 'teto' : 'miku'); }
-        function setTheme(t) {
-            document.documentElement.setAttribute('data-theme', t);
-            localStorage.setItem('theme', t);
-            if(toggle) toggle.checked = (t === 'teto');
-        }
-        setTheme(localStorage.getItem('theme') || 'miku');
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) window.location.replace(destination);
+        });
 
-        // --- LOGIN LOGIC ---
-        function login() {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('pass').value;
-            const errBox = document.getElementById('err');
-            const btn = document.getElementById('loginBtn');
-
-            btn.innerText = "AUTHENTICATING...";
-            errBox.style.display = "none";
-
-            firebase.auth().signInWithEmailAndPassword(email, pass)
-                .then(() => {
-                    localStorage.setItem("miku_auth", "true");
-                    window.location.href = "downloads.html";
-                })
-                .catch((error) => {
-                    btn.innerText = "INITIALIZE";
-                    errBox.style.display = "block";
-                    errBox.innerText = "ACCESS DENIED: UNKNOWN IDENTITY";
-                    console.error(error.message);
-                });
-        }
-
-        // Press Enter to login
-        document.addEventListener('keypress', (e) => { 
-            if (e.key === 'Enter') login(); 
+        document.getElementById("login-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const button = document.getElementById("loginBtn");
+            const errorBox = document.getElementById("err");
+            button.disabled = true;
+            button.textContent = "AUTHENTICATING…";
+            errorBox.style.display = "none";
+            try {
+                await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+                await firebase.auth().signInWithEmailAndPassword(
+                    document.getElementById("email").value.trim(),
+                    document.getElementById("pass").value
+                );
+                window.location.replace(destination);
+            } catch (_) {
+                errorBox.textContent = "ACCESS DENIED: CHECK YOUR CREDENTIALS";
+                errorBox.style.display = "block";
+                button.disabled = false;
+                button.textContent = "INITIALIZE";
+            }
         });
     </script>
 </body>

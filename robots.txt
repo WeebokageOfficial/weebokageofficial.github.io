@@ -2,5 +2,6 @@ User-agent: *
 Disallow: /transit.html
 Disallow: /islam.html
 Disallow: /downloads.html
+Disallow: /login.html
 
 Sitemap: https://weebokage.com/sitemap.xml

@@ -2,86 +2,126 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <meta name="robots" content="noindex, nofollow">
     <title>Islam | WEEBOKAGE</title>
-    <link rel="stylesheet" href="style.css?v=11.4">
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=13.0">
+    <link rel="stylesheet" href="responsive.css?v=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="site.js?v=1.0"></script>
     <style>
-        .islam-body { background: #fdfcf0 !important; color: #1a2f23 !important; background-image: none !important; }
-        .islam-card { background: white !important; border: 2px solid #d4af37 !important; color: #1a2f23 !important; padding: 40px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important; }
-        .arabic { font-family: 'Amiri', serif; font-size: 2.2rem; text-align: right; direction: rtl; color: #064e3b; line-height: 1.8; }
-        /* FIXED BADGE STYLE */
-        .hadith-badge { display: inline-block; background: #064e3b; color: #d4af37; padding: 6px 16px; border-radius: 8px; font-weight: bold; margin-top: 25px; font-size: 0.85rem; border: 1px solid #d4af37; box-shadow: 0 0 10px rgba(6, 78, 59, 0.2); }
+        .islam-body { background:#fdfcf0!important;color:#1a2f23!important;background-image:none!important; }
+        .islam-card { background:#fff!important;border:2px solid #d4af37!important;color:#1a2f23!important;padding:40px!important;box-shadow:0 10px 30px rgba(0,0,0,.05)!important; }
+        .arabic { font-family:"Amiri",serif;font-size:clamp(1.6rem,7vw,2.2rem);text-align:right;direction:rtl;color:#064e3b;line-height:1.8;overflow-wrap:anywhere; }
+        .hadith-badge { display:inline-block;background:#064e3b;color:#f5d66f;padding:6px 16px;border-radius:8px;font-weight:bold;margin-top:25px;font-size:.85rem;border:1px solid #d4af37; }
+        @media (max-width:600px) {
+            .islam-card { padding:22px!important; }
+            .islam-title { font-size:clamp(2rem,12vw,3rem)!important;overflow-wrap:anywhere; }
+        }
     </style>
 </head>
-<body class="islam-body">
-    <nav style="background:#064e3b; border-bottom:4px solid #d4af37;">
-        <div class="links">
-            <a href="index.html" style="color:white">Home</a>
-            <a href="islam.html" style="color:white">Islam</a>
-            <a href="downloads.html" style="color:white">Admin</a>
-        </div>
-    </nav>
-    <div class="container">
-        <h1 style="text-align:center; color:#064e3b; font-family:'Amiri'; font-size:3rem; margin:40px 0;">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ</h1>
-        
-        <div class="card islam-card">
-            <h2 style="color:#064e3b !important; border-bottom:1px solid #d4af37; padding-bottom:15px; margin-bottom:20px;"><i class="fas fa-book"></i> Sahih al-Bukhari</h2>
-            <div id="hadith-box">Loading authentic transmission...</div>
-            <button class="btn" onclick="fetchHadith()" style="background:#064e3b; color:white; margin-top:20px;">RANDOMIZE</button>
-        </div>
+<body class="islam-body guarded">
+    <nav aria-label="Islam archive navigation" style="background:#064e3b;border-bottom:4px solid #d4af37;"><div class="links">
+        <a href="index.html" style="color:#fff;">Home</a>
+        <a href="islam.html" style="color:#fff;" aria-current="page">Islam</a>
+        <a href="downloads.html" style="color:#fff;">Admin</a>
+    </div></nav>
 
-        <div class="card islam-card">
-            <h2 style="color:#064e3b !important; border-bottom:1px solid #d4af37; padding-bottom:15px; margin-bottom:20px;"><i class="fas fa-clock"></i> Mawaqit al-Salat</h2>
-            <div id="prayer-list">Enable location access to view times...</div>
-        </div>
-    </div>
+    <main class="container">
+        <h1 class="islam-title" lang="ar" dir="rtl" style="text-align:center;color:#064e3b;font-family:Amiri;font-size:3rem;margin:40px 0;">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ</h1>
+        <section class="card islam-card">
+            <h2 style="color:#064e3b!important;border-bottom:1px solid #d4af37;padding-bottom:15px;margin-bottom:20px;"><i class="fas fa-book" aria-hidden="true"></i> Sahih al-Bukhari</h2>
+            <div id="hadith-box" aria-live="polite">Loading authentic transmission…</div>
+            <button id="hadith-button" class="btn" style="background:#064e3b;color:#fff;margin-top:20px;">RANDOMIZE</button>
+        </section>
+        <section class="card islam-card">
+            <h2 style="color:#064e3b!important;border-bottom:1px solid #d4af37;padding-bottom:15px;margin-bottom:20px;"><i class="fas fa-clock" aria-hidden="true"></i> Mawaqit al-Salat</h2>
+            <div id="prayer-list" aria-live="polite">Enable location access to view times…</div>
+            <button id="location-button" class="btn" style="background:#064e3b;color:#fff;margin-top:20px;">USE MY LOCATION</button>
+        </section>
+    </main>
 
     <script>
-        <script>
-    // 1. Immediately hide the page
-    document.body.classList.add('guarded');
+        "use strict";
+        Weebokage.initFirebase();
 
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            // 2. If it's you, show the page
-            document.body.classList.remove('guarded');
-        } else {
-            // 3. If it's a guest or Google, kick them out
-            window.location.replace("index.html");
-        }
-    });
-        const API_KEY = "$2y$10$bh8gWRHGMPAOaerOv4kXpOQLdNdrE1DR7lBNK9oL7OuE20QHSIM6";
+        firebase.auth().onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.replace("login.html?next=islam.html");
+                return;
+            }
+            document.body.classList.remove("guarded");
+            fetchHadith();
+        });
+
         async function fetchHadith() {
-            const box = document.getElementById('hadith-box');
-            box.innerHTML = "Consulting the archive...";
+            const box = document.getElementById("hadith-box");
+            const button = document.getElementById("hadith-button");
+            button.disabled = true;
+            box.textContent = "Consulting the archive…";
             try {
-                const res = await fetch(`https://hadithapi.com/api/hadiths?apiKey=${API_KEY}&book=sahih-bukhari&paginate=10&page=${Math.floor(Math.random()*200)+1}`);
-                const json = await res.json();
-                const h = json.hadiths.data[Math.floor(Math.random()*json.hadiths.data.length)];
-                let cleanedEn = h.hadithEnglish.replace(/[\u0600-\u06FF]+/g, "").replace(/\s+/g, " ").trim();
-                box.innerHTML = `
-                    <p class="arabic">${h.hadithArabic}</p>
-                    <p style="margin-top:20px; line-height:1.7; font-style:italic;">"${cleanedEn}"</p>
-                    <div class="hadith-badge">Bukhari | No. ${h.hadithNumber}</div>
-                `;
-            } catch (e) { box.innerHTML = "Archive busy. Try again."; }
+                const response = await Weebokage.apiFetch("/hadith/random");
+                const hadith = await response.json();
+                const fragment = document.createDocumentFragment();
+                const arabic = document.createElement("p");
+                arabic.className = "arabic";
+                arabic.lang = "ar";
+                arabic.dir = "rtl";
+                arabic.textContent = hadith.arabic || "Arabic text unavailable.";
+                const english = document.createElement("p");
+                english.style.cssText = "margin-top:20px;line-height:1.7;font-style:italic;white-space:pre-wrap";
+                english.textContent = hadith.english || "English text unavailable.";
+                const badge = document.createElement("div");
+                badge.className = "hadith-badge";
+                badge.textContent = "Bukhari | No. " + (hadith.number || "N/A");
+                fragment.append(arabic, english, badge);
+                box.replaceChildren(fragment);
+            } catch (_) {
+                box.textContent = "Archive busy or authentication unavailable. Try again.";
+            } finally {
+                button.disabled = false;
+            }
         }
+
         function loadPrayers() {
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&method=3`);
-                const data = await res.json();
-                const t = data.data.timings;
-                const p = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
-                document.getElementById('prayer-list').innerHTML = p.map(n => `
-                    <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0f0f0;">
-                        <strong>${n}</strong><span style="color:#d4af37; font-weight:bold;">${t[n]}</span>
-                    </div>`).join('');
-            });
+            const output = document.getElementById("prayer-list");
+            if (!navigator.geolocation) {
+                output.textContent = "Geolocation is not supported by this browser.";
+                return;
+            }
+            output.textContent = "Waiting for location permission…";
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                try {
+                    const url = "https://api.aladhan.com/v1/timings?latitude=" + encodeURIComponent(position.coords.latitude) + "&longitude=" + encodeURIComponent(position.coords.longitude) + "&method=3";
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error("Prayer API unavailable");
+                    const timings = (await response.json()).data.timings;
+                    const rows = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"].map((name) => {
+                        const row = document.createElement("div");
+                        row.style.cssText = "display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #f0f0f0";
+                        const label = document.createElement("strong");
+                        label.textContent = name;
+                        const time = document.createElement("span");
+                        time.textContent = timings[name];
+                        time.style.cssText = "color:#8a6c00;font-weight:bold";
+                        row.append(label, time);
+                        return row;
+                    });
+                    output.replaceChildren(...rows);
+                } catch (_) {
+                    output.textContent = "Prayer times are currently unavailable.";
+                }
+            }, () => {
+                output.textContent = "Location permission was denied. Enable it in your browser and try again.";
+            }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
         }
-        fetchHadith(); loadPrayers();
+
+        document.getElementById("hadith-button").addEventListener("click", fetchHadith);
+        document.getElementById("location-button").addEventListener("click", loadPrayers);
     </script>
 </body>
 </html>

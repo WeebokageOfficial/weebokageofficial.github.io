@@ -3,185 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Arcade Terminal | WEEBOKAGE</title>
-    <!-- Cache-Buster v12.1 -->
-    <link rel="stylesheet" href="style.css?v=12.1">
+    <meta name="description" content="Play classic browser games in the Weebokage arcade.">
+    <link rel="stylesheet" href="style.css?v=13.0">
+    <link rel="stylesheet" href="responsive.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    
-    <!-- Game Engines -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="site.js?v=1.0"></script>
     <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
     <script src="https://js-dos.com/v7/build/js-dos.js"></script>
     <link href="https://js-dos.com/v7/build/js-dos.css" rel="stylesheet">
-
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'miku';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
-    </script>
-
     <style>
-        .game-container {
-            width: 100%; max-width: 900px; height: 600px; 
-            background: #000; border: 2px solid var(--primary);
-            box-shadow: 0 0 30px var(--primary-glow); border-radius: 20px;
-            overflow: hidden; display: none; margin: 30px auto; position: relative;
-        }
-        .jsdos-container { width: 100%; height: 100%; }
-        .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 20px; }
-        .game-card { text-align: center; cursor: pointer; padding: 50px !important; transition: 0.3s ease; }
-        .game-card:hover { transform: translateY(-10px); border-color: var(--primary); box-shadow: 0 15px 35px var(--primary-glow); }
-        .game-card i { font-size: 4rem; color: var(--primary); margin-bottom: 20px; }
-        
-        #loading-overlay {
-            position: absolute; inset: 0; background: #000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 10; color: var(--primary); font-weight: bold; letter-spacing: 2px;
+        .game-container { width:100%;max-width:900px;height:min(600px,70dvh);min-height:360px;background:#000;border:2px solid var(--primary);box-shadow:0 0 30px var(--primary-glow);border-radius:20px;overflow:hidden;display:none;margin:30px auto;position:relative; }
+        .jsdos-container,#ruffle-canvas,ruffle-player { width:100%!important;height:100%!important; }
+        .game-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:25px;margin-top:20px; }
+        .game-card { color:#fff;text-align:center;cursor:pointer;padding:50px!important;font:inherit; }
+        .game-card i { font-size:4rem;color:var(--primary);margin-bottom:20px; }
+        #loading-overlay { position:absolute;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;color:var(--primary);font-weight:bold;letter-spacing:2px;text-align:center;padding:20px; }
+        .mobile-game-note { display:none;margin:10px auto;max-width:650px;opacity:.8;text-align:center; }
+        @media (max-width:700px) {
+            #arcade-header h1 { font-size:clamp(2rem,12vw,3.5rem)!important;letter-spacing:2px!important;overflow-wrap:anywhere; }
+            .game-card { padding:32px 20px!important; }
+            .game-container { height:min(520px,65dvh);min-height:300px;border-radius:12px; }
+            .mobile-game-note { display:block; }
         }
     </style>
 </head>
 <body>
-
-    <div class="theme-switch-wrapper">
-        <span onclick="setTheme('miku')" style="cursor:pointer; font-size: 1.2rem;">🩵</span>
-        <label class="switch"><input type="checkbox" id="theme-toggle" onclick="themeToggle()"><span class="slider"></span></label>
-        <span onclick="setTheme('teto')" style="cursor:pointer; font-size: 1.2rem;">🥖</span>
+    <div class="theme-switch-wrapper" aria-label="Theme selection">
+        <button class="icon-button" onclick="setTheme('miku')" aria-label="Use Miku theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🩵</button>
+        <label class="switch" aria-label="Toggle theme"><input type="checkbox" id="theme-toggle" onclick="themeToggle()"><span class="slider"></span></label>
+        <button class="icon-button" onclick="setTheme('teto')" aria-label="Use Teto theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🥖</button>
     </div>
 
-    <nav>
-    <div class="links">
+    <nav aria-label="Main navigation"><div class="links">
         <a href="index.html">Home</a>
-        <!-- Both of these are now hidden from guests -->
         <a href="transit.html" class="admin-hide" id="nav-transit">Transit</a>
         <a href="islam.html" class="admin-hide" id="nav-islam">Islam</a>
-        
         <a href="anime.html">Anime</a>
-        <a href="games.html">Games</a>
+        <a href="games.html" aria-current="page">Games</a>
         <a href="credits.html">Credits</a>
         <a href="login.html" id="admin-btn">Admin</a>
-    </div>
-</nav>
+    </div></nav>
 
-    <div class="container">
-        <div class="hero" id="arcade-header" style="text-align: center; margin-bottom: 50px;">
-            <h1 style="color: var(--primary); font-size: 3.5rem; letter-spacing: 5px; text-transform: uppercase;">Arcade Terminal</h1>
-            <p style="opacity: 0.6; letter-spacing: 2px;">Simulation Uplink: Stable</p>
-        </div>
+    <main class="container">
+        <header id="arcade-header" style="text-align:center;margin-bottom:50px;">
+            <h1 style="color:var(--primary);font-size:3.5rem;letter-spacing:5px;text-transform:uppercase;">Arcade Terminal</h1>
+            <p style="opacity:.65;letter-spacing:2px;">Simulation Uplink: Stable</p>
+        </header>
+        <p class="mobile-game-note">A physical keyboard is recommended for DOS games. Touch controls depend on the emulator.</p>
 
-        <!-- SELECTION MENU -->
         <div class="game-grid" id="selection-area">
-            <!-- DOOM Card -->
-            <div class="card game-card" onclick="loadDoom()">
-                <i class="fas fa-skull"></i>
-                <h3>DOOM (1993)</h3>
-                <p style="font-size: 0.85rem; opacity: 0.5; margin-top: 10px;">Engine: JS-DOS v7</p>
+            <button type="button" class="card game-card" onclick="loadDoom()">
+                <i class="fas fa-skull" aria-hidden="true"></i>
+                <h2>DOOM (1993)</h2>
+                <span style="display:block;font-size:.85rem;opacity:.6;margin-top:10px;">Engine: JS-DOS v7</span>
+            </button>
+            <button type="button" class="card game-card" onclick="loadFlash('assets/Mario_Combat.swf')">
+                <i class="fas fa-fist-raised" aria-hidden="true"></i>
+                <h2>Mario Combat</h2>
+                <span style="display:block;font-size:.85rem;opacity:.6;margin-top:10px;">Engine: Ruffle Flash</span>
+            </button>
+        </div>
+
+        <section id="player-wrapper" class="game-container" aria-label="Game player">
+            <div id="loading-overlay" hidden>
+                <i class="fas fa-sync fa-spin" style="font-size:2rem;margin-bottom:15px;" aria-hidden="true"></i>
+                <span id="loading-text">INITIALIZING…</span>
             </div>
-
-            <!-- Mario Card -->
-            <div class="card game-card" onclick="loadFlash('assets/Mario_Combat.swf')">
-                <i class="fas fa-fist-raised"></i>
-                <h3>Mario Combat</h3>
-                <p style="font-size: 0.85rem; opacity: 0.5; margin-top: 10px;">Engine: Ruffle Flash</p>
-            </div>
+            <div id="ruffle-canvas" hidden></div>
+            <div id="dos-canvas" class="jsdos-container" hidden></div>
+        </section>
+        <div style="text-align:center;">
+            <button id="closeBtn" class="btn" hidden style="margin-top:20px;background:#ff2d55;color:#fff;" onclick="window.location.reload()">TERMINATE SESSION</button>
         </div>
+    </main>
 
-        <!-- PLAYER AREA -->
-        <div id="player-wrapper" class="game-container">
-            <div id="loading-overlay" style="display: none;">
-                <i class="fas fa-sync fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i>
-                <span>INITIALIZING DOOM.EXE...</span>
-            </div>
-            <div id="ruffle-canvas" style="width:100%; height:100%; display:none;"></div>
-            <div id="dos-canvas" class="jsdos-container" style="display:none;"></div>
+    <aside id="miku-chat-container" style="position:fixed;bottom:20px;left:20px;z-index:2000;" aria-label="AI assistant">
+        <div id="miku-window" hidden role="dialog" aria-labelledby="ai-title" style="display:none;width:350px;height:500px;background:rgba(10,11,16,.95);backdrop-filter:blur(20px);border:2px solid var(--primary);border-radius:20px;flex-direction:column;overflow:hidden;box-shadow:0 0 30px var(--primary-glow);margin-bottom:15px;">
+            <div style="background:var(--primary);color:#000;padding:12px;font-weight:bold;display:flex;justify-content:space-between;"><span id="ai-title">MIKU SYSTEM 01</span><button class="icon-button" onclick="toggleMiku()" aria-label="Close chat" style="cursor:pointer;background:none;border:0;font-size:1.3rem;">&times;</button></div>
+            <div id="miku-msgs" aria-live="polite" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:15px;font-size:.9rem;"></div>
+            <div style="padding:15px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.1);"><label class="sr-only" for="miku-input">Chat message</label><input type="text" id="miku-input" maxlength="1000" placeholder="Ask about games…" style="margin:0;border-radius:12px;"><button onclick="askMiku()" class="btn" aria-label="Send message" style="width:50px;height:50px;border-radius:50%;padding:0;"><i class="fas fa-paper-plane" aria-hidden="true"></i></button></div>
         </div>
-        
-        <div style="text-align: center;">
-            <button id="closeBtn" class="btn" style="display:none; margin-top: 20px; background: #ff2d55; color: white;" onclick="location.reload()">TERMINATE SESSION</button>
-        </div>
-    </div>
+        <button id="miku-btn" class="icon-button" onclick="toggleMiku()" aria-label="Open AI chat" aria-expanded="false" style="width:70px;height:70px;border-radius:50%;background-image:var(--pfp);background-size:cover;border:3px solid var(--primary);cursor:pointer;box-shadow:0 0 20px var(--primary-glow);"></button>
+    </aside>
 
-    <!-- AI CHAT -->
-    <div id="miku-chat-container" style="position: fixed; bottom: 20px; left: 20px; z-index: 2000;">
-        <div id="miku-window" style="display: none; width: 350px; height: 500px; background: rgba(10,11,16,0.95); backdrop-filter: blur(20px); border: 2px solid var(--primary); border-radius: 20px; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px var(--primary-glow); margin-bottom: 15px;">
-            <div style="background: var(--primary); color: black; padding: 12px; font-weight: bold; display: flex; justify-content: space-between;"><span id="ai-title">MIKU SYSTEM 01</span><span onclick="toggleMiku()" style="cursor: pointer;">&times;</span></div>
-            <div id="miku-msgs" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; font-size: 0.9rem;"></div>
-            <div style="padding: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1);"><input type="text" id="miku-input" placeholder="Ask about games..." style="margin:0; border-radius: 12px;"><button onclick="askMiku()" class="btn" style="width: 50px; height: 50px; border-radius: 50%; padding: 0;"><i class="fas fa-paper-plane"></i></button></div>
-        </div>
-        <div id="miku-btn" onclick="toggleMiku()" style="width: 70px; height: 70px; border-radius: 50%; background-image: var(--pfp); background-size: cover; border: 3px solid var(--primary); cursor: pointer; box-shadow: 0 0 20px var(--primary-glow);"></div>
-    </div>
-
+    <script src="chat.js?v=1.0"></script>
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyAj4pBH0zjbCIbUHp0ldmW8eU8pJTZnquo", authDomain: "weebokage-296c0.firebaseapp.com", projectId: "weebokage-296c0", storageBucket: "weebokage-296c0.firebasestorage.app", messagingSenderId: "192569800499", appId: "1:192569800499:web:4c5ef67242b7fdd0b2b046" };
-        firebase.initializeApp(firebaseConfig);
-        
-        let isMaster = false;
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) { isMaster = true; document.getElementById('nav-islam')?.style.setProperty('display', 'inline-block', 'important'); document.getElementById('admin-btn').innerText = "Logoff"; }
-            updateGreeting();
-        });
+        "use strict";
+        Weebokage.initFirebase();
+        Weebokage.setTheme(localStorage.getItem("theme") || "miku");
+        WeebokageChat.initialize();
+        Weebokage.bindAuthNavigation({ onChange: (user) => WeebokageChat.setUser(user) });
 
-        function setTheme(t) {
-            document.documentElement.setAttribute('data-theme', t); localStorage.setItem('theme', t);
-            document.getElementById('theme-toggle').checked = (t === 'teto');
-            document.getElementById('ai-title').innerText = (t === 'teto') ? "TETO SYSTEM 04" : "MIKU SYSTEM 01";
-        }
-        setTheme(localStorage.getItem('theme') || 'miku');
-        function themeToggle() { setTheme(document.getElementById('theme-toggle').checked ? 'teto' : 'miku'); }
-
-        // --- GAME LOGIC ---
-        function prepareUI() {
-            document.getElementById('selection-area').style.display = 'none';
-            document.getElementById('arcade-header').style.display = 'none';
-            document.getElementById('player-wrapper').style.display = 'block';
-            document.getElementById('closeBtn').style.display = 'inline-block';
+        function prepareUI(message) {
+            document.getElementById("selection-area").hidden = true;
+            document.getElementById("arcade-header").hidden = true;
+            const wrapper = document.getElementById("player-wrapper");
+            wrapper.style.display = "block";
+            const overlay = document.getElementById("loading-overlay");
+            overlay.hidden = false;
+            overlay.style.display = "flex";
+            document.getElementById("loading-text").textContent = message;
+            document.getElementById("closeBtn").hidden = false;
         }
 
-        // LOAD DOOM (JS-DOS)
+        function showGameError(message) {
+            const overlay = document.getElementById("loading-overlay");
+            overlay.hidden = false;
+            overlay.style.display = "flex";
+            document.getElementById("loading-text").textContent = message;
+        }
+
         function loadDoom() {
-            prepareUI();
-            document.getElementById('dos-canvas').style.display = 'block';
-            document.getElementById('loading-overlay').style.display = 'flex';
-            
-            Dos(document.getElementById("dos-canvas"), {
-                wdboxUrl: "https://js-dos.com/v7/build/wdbox.js",
-            }).run("assets/doom.zip").then((ci) => {
-                document.getElementById('loading-overlay').style.display = 'none';
-                console.log("Doom simulation initialized.");
-            });
+            prepareUI("INITIALIZING DOOM.EXE…");
+            const canvas = document.getElementById("dos-canvas");
+            canvas.hidden = false;
+            if (typeof window.Dos !== "function") {
+                showGameError("JS-DOS could not be loaded.");
+                return;
+            }
+            window.Dos(canvas, { wdboxUrl: "https://js-dos.com/v7/build/wdbox.js" })
+                .run("assets/doom.zip")
+                .then(() => {
+                    const overlay = document.getElementById("loading-overlay");
+                    overlay.hidden = true;
+                    overlay.style.display = "none";
+                })
+                .catch(() => showGameError("DOOM could not be started."));
         }
 
-        // LOAD MARIO (FLASH)
         function loadFlash(path) {
-            prepareUI();
-            document.getElementById('ruffle-canvas').style.display = 'block';
-            const ruffle = window.RufflePlayer.newest();
-            const player = ruffle.createPlayer();
-            document.getElementById('ruffle-canvas').appendChild(player);
-            player.load({ url: path, scale: "showAll" });
-        }
-
-        // --- AI CHAT (Standard) ---
-        function toggleMiku() { const win = document.getElementById('miku-window'); win.style.display = (win.style.display === 'none' || win.style.display === '') ? 'flex' : 'none'; }
-        function updateGreeting() {
-            const t = localStorage.getItem('theme') || 'miku';
-            const msgBox = document.getElementById('miku-msgs');
-            let g = t === 'teto' ? "Master! Teto 04 active. Simulation ready. 🥖" : "Miku 01 online. Ready for arcade mode! 🩵";
-            msgBox.innerHTML = `<div style="background: rgba(57, 197, 187, 0.1); padding: 12px; border-radius: 12px; border: 1px solid var(--primary); align-self: flex-start; max-width: 85%;">${g}</div>`;
-        }
-        async function askMiku() {
-            const inp = document.getElementById('miku-input'); const box = document.getElementById('miku-msgs'); const val = inp.value.trim();
-            if(!val) return;
-            box.innerHTML += `<div style="background: var(--primary); color: black; padding: 12px; border-radius: 12px; align-self: flex-end; max-width: 85%; font-weight: bold;">${val}</div>`;
-            inp.value = "";
-            const load = document.createElement("div"); load.style.cssText = "background: rgba(57, 197, 187, 0.1); padding: 12px; border-radius: 12px; border: 1px solid var(--primary); align-self: flex-start;";
-            load.innerText = "..."; box.appendChild(load); box.scrollTop = box.scrollHeight;
+            prepareUI("INITIALIZING RUFFLE…");
+            const canvas = document.getElementById("ruffle-canvas");
+            canvas.hidden = false;
             try {
-                const res = await fetch("https://weebokageofficial-github-io.onrender.com/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: String(val), theme: localStorage.getItem('theme') || 'miku', is_master: isMaster }) });
-                const data = await res.json(); load.innerText = data.reply;
-            } catch (e) { load.innerText = "Connection lost."; }
-            box.scrollTop = box.scrollHeight;
+                const ruffle = window.RufflePlayer.newest();
+                const player = ruffle.createPlayer();
+                canvas.appendChild(player);
+                player.load({ url: path, scale: "showAll" });
+                const overlay = document.getElementById("loading-overlay");
+                overlay.hidden = true;
+                overlay.style.display = "none";
+            } catch (_) {
+                showGameError("Ruffle could not be started.");
+            }
         }
-        document.getElementById('miku-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') askMiku(); });
     </script>
 </body>
 </html>

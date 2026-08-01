@@ -3,186 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transit Terminal | WEEBOKAGE</title>
-    <!-- Cache-Buster v11.7 -->
-    <link rel="stylesheet" href="style.css?v=11.7">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <meta name="robots" content="noindex, nofollow">
-    <!-- Firebase -->
+    <title>Transit Terminal | WEEBOKAGE</title>
+    <link rel="stylesheet" href="style.css?v=13.0">
+    <link rel="stylesheet" href="responsive.css?v=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'miku';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        })();
-    </script>
-    <script>
-    // 1. Immediately hide the page
-    document.body.classList.add('guarded');
-
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            // 2. If it's you, show the page
-            document.body.classList.remove('guarded');
-        } else {
-            // 3. If it's a guest or Google, kick them out
-            window.location.replace("index.html");
-        }
-    });
-</script>
+    <script src="site.js?v=1.0"></script>
     <style>
-        .weather-banner { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
-        .weather-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border: 1px solid var(--primary); border-radius: 20px; padding: 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 0 20px var(--primary-glow); animation: weatherFloat 4s ease-in-out infinite; }
-        .weather-temp { font-size: 2rem; font-weight: 700; }
-        .weather-icon { font-size: 2.5rem; color: var(--primary); }
-        @keyframes weatherFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        .transit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-top: 20px; }
-        .vrs-widget { width: 100%; height: 500px; border: none; background: #fff; border-radius: 0 0 15px 15px; filter: invert(0.9) hue-rotate(180deg) brightness(1.1); }
-        .stop-card { padding: 0 !important; overflow: hidden; border-top: 5px solid var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
-        .stop-header { padding: 15px; background: rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px; }
-        .stop-header h3 { margin: 0; color: var(--primary); font-size: 1.1rem; }
-        @media (max-width: 600px) { .weather-banner { grid-template-columns: 1fr; } }
+        .weather-banner { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-bottom:40px; }
+        .weather-card { background:rgba(255,255,255,.05);backdrop-filter:blur(15px);border:1px solid var(--primary);border-radius:20px;padding:20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 0 20px var(--primary-glow);animation:weatherFloat 4s ease-in-out infinite; }
+        .weather-temp { font-size:2rem;font-weight:700; }
+        .weather-icon { font-size:2.5rem;color:var(--primary); }
+        @keyframes weatherFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        .transit-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:25px;margin-top:20px; }
+        .vrs-widget { width:100%;height:min(500px,65dvh);min-height:360px;border:0;background:#fff;border-radius:0 0 15px 15px;filter:invert(.9) hue-rotate(180deg) brightness(1.1); }
+        .stop-card { padding:0!important;overflow:hidden;border-top:5px solid var(--primary); }
+        .stop-header { padding:15px;background:rgba(0,0,0,.5);display:flex;align-items:center;gap:10px; }
+        .stop-header h2 { margin:0;color:var(--primary);font-size:1.1rem; }
+        @media (max-width:600px) {
+            .weather-banner { grid-template-columns:1fr; }
+            .vrs-widget { min-height:320px; }
+        }
     </style>
 </head>
-<body>
-
-    <!-- THEME TOGGLE -->
-    <div class="theme-switch-wrapper">
-        <span onclick="setTheme('miku')" style="cursor:pointer; font-size: 1.2rem;">🩵</span>
-        <label class="switch">
-            <input type="checkbox" id="theme-toggle" onclick="themeToggle()">
-            <span class="slider"></span>
-        </label>
-        <span onclick="setTheme('teto')" style="cursor:pointer; font-size: 1.2rem;">🥖</span>
+<body class="guarded">
+    <div class="theme-switch-wrapper" aria-label="Theme selection">
+        <button class="icon-button" onclick="setTheme('miku')" aria-label="Use Miku theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🩵</button>
+        <label class="switch" aria-label="Toggle theme"><input type="checkbox" id="theme-toggle" onclick="themeToggle()"><span class="slider"></span></label>
+        <button class="icon-button" onclick="setTheme('teto')" aria-label="Use Teto theme" style="cursor:pointer;font-size:1.2rem;background:none;border:0;">🥖</button>
     </div>
 
-    <!-- NAVIGATION -->
-   <nav>
-    <div class="links">
+    <nav aria-label="Main navigation"><div class="links">
         <a href="index.html">Home</a>
-        <!-- Both of these are now hidden from guests -->
-        <a href="transit.html" class="admin-hide" id="nav-transit">Transit</a>
+        <a href="transit.html" class="admin-hide" id="nav-transit" aria-current="page">Transit</a>
         <a href="islam.html" class="admin-hide" id="nav-islam">Islam</a>
-        
         <a href="anime.html">Anime</a>
         <a href="games.html">Games</a>
         <a href="credits.html">Credits</a>
         <a href="login.html" id="admin-btn">Admin</a>
-    </div>
-</nav>
+    </div></nav>
 
-    <div class="container" style="max-width: 1100px;">
-        <!-- WEATHER BANNER -->
-        <div class="weather-banner">
-            <div class="weather-card" id="weather-burscheid">
-                <div class="weather-info"><h4>Burscheid Sector</h4><div class="weather-temp">--°C</div><div class="weather-desc" style="font-size: 0.7rem; opacity: 0.6;">Syncing...</div></div>
-                <i class="fas fa-cloud-sun weather-icon"></i>
-            </div>
-            <div class="weather-card" id="weather-koeln" style="animation-delay: 1s;">
-                <div class="weather-info"><h4>Köln Sector</h4><div class="weather-temp">--°C</div><div class="weather-desc" style="font-size: 0.7rem; opacity: 0.6;">Syncing...</div></div>
-                <i class="fas fa-cloud-sun weather-icon"></i>
-            </div>
+    <main class="container" style="max-width:1100px;">
+        <section class="weather-banner" aria-label="Current weather">
+            <article class="weather-card" id="weather-burscheid">
+                <div class="weather-info"><h2 style="font-size:.8rem;">Burscheid Sector</h2><div class="weather-temp">--°C</div><div class="weather-desc" style="font-size:.7rem;opacity:.65;">Syncing…</div></div>
+                <i class="fas fa-cloud-sun weather-icon" aria-hidden="true"></i>
+            </article>
+            <article class="weather-card" id="weather-koeln" style="animation-delay:1s;">
+                <div class="weather-info"><h2 style="font-size:.8rem;">Köln Sector</h2><div class="weather-temp">--°C</div><div class="weather-desc" style="font-size:.7rem;opacity:.65;">Syncing…</div></div>
+                <i class="fas fa-cloud-sun weather-icon" aria-hidden="true"></i>
+            </article>
+        </section>
+
+        <section class="transit-grid" id="transit-grid" aria-label="Transit departures"><p class="status-message">Loading protected departures…</p></section>
+    </main>
+
+    <aside id="miku-chat-container" style="position:fixed;bottom:20px;left:20px;z-index:2000;" aria-label="AI assistant">
+        <div id="miku-window" hidden role="dialog" aria-labelledby="ai-title" style="display:none;width:350px;height:500px;background:rgba(10,11,16,.95);backdrop-filter:blur(20px);border:2px solid var(--primary);border-radius:20px;flex-direction:column;overflow:hidden;box-shadow:0 0 30px var(--primary-glow);margin-bottom:15px;">
+            <div style="background:var(--primary);color:#000;padding:12px;font-weight:bold;display:flex;justify-content:space-between;"><span id="ai-title">MIKU SYSTEM 01</span><button class="icon-button" onclick="toggleMiku()" aria-label="Close chat" style="cursor:pointer;background:none;border:0;font-size:1.3rem;">&times;</button></div>
+            <div id="miku-msgs" aria-live="polite" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:15px;font-size:.9rem;"></div>
+            <div style="padding:15px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.1);"><label class="sr-only" for="miku-input">Chat message</label><input type="text" id="miku-input" maxlength="1000" placeholder="Ask Miku/Teto…" style="margin:0;border-radius:12px;"><button onclick="askMiku()" class="btn" aria-label="Send message" style="width:50px;height:50px;border-radius:50%;padding:0;"><i class="fas fa-paper-plane" aria-hidden="true"></i></button></div>
         </div>
+        <button id="miku-btn" class="icon-button" onclick="toggleMiku()" aria-label="Open AI chat" aria-expanded="false" style="width:70px;height:70px;border-radius:50%;background-image:var(--pfp);background-size:cover;border:3px solid var(--primary);cursor:pointer;box-shadow:0 0 20px var(--primary-glow);"></button>
+    </aside>
 
-        <!-- TRANSIT GRID -->
-        <div class="transit-grid">
-            <div class="card stop-card"><div class="stop-header"><i class="fas fa-bus"></i> <h3>Nagelsbaum</h3></div><iframe class="vrs-widget" src="https://www.vrs.de/am/s/2d5200b1b0ceef2ffb16af3170bf8aec"></iframe></div>
-            <div class="card stop-card"><div class="stop-header"><i class="fas fa-train"></i> <h3>Opladen</h3></div><iframe class="vrs-widget" src="https://www.vrs.de/am/s/bed61f99abba10de1c4d0e43c96b6236"></iframe></div>
-            <div class="card stop-card"><div class="stop-header"><i class="fas fa-subway"></i> <h3>Leverkusen Mitte</h3></div><iframe class="vrs-widget" src="https://www.vrs.de/am/s/ee7cbb556eda537c8994f720d2a98498"></iframe></div>
-            <div class="card stop-card"><div class="stop-header"><i class="fas fa-hospital"></i> <h3>Köln-Merheim</h3></div><iframe class="vrs-widget" src="https://www.vrs.de/am/s/82516c5a2a0646c745d3d18170d301b4"></iframe></div>
-        </div>
-    </div>
-
-    <!-- AI CHAT -->
-    <div id="miku-chat-container" style="position: fixed; bottom: 20px; left: 20px; z-index: 2000;">
-        <div id="miku-window" style="display: none; width: 350px; height: 500px; background: rgba(10,11,16,0.95); backdrop-filter: blur(20px); border: 2px solid var(--primary); border-radius: 20px; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px var(--primary-glow); margin-bottom: 15px;">
-            <div style="background: var(--primary); color: black; padding: 12px; font-weight: bold; display: flex; justify-content: space-between;"><span id="ai-title">MIKU SYSTEM 01</span><span onclick="toggleMiku()" style="cursor: pointer;">&times;</span></div>
-            <div id="miku-msgs" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; font-size: 0.9rem;"></div>
-            <div style="padding: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1);"><input type="text" id="miku-input" placeholder="Ask Miku/Teto..." style="margin:0; border-radius: 12px;"><button onclick="askMiku()" class="btn" style="width: 50px; height: 50px; border-radius: 50%; padding: 0;"><i class="fas fa-paper-plane"></i></button></div>
-        </div>
-        <div id="miku-btn" onclick="toggleMiku()" style="width: 70px; height: 70px; border-radius: 50%; background-image: var(--pfp); background-size: cover; border: 3px solid var(--primary); cursor: pointer; box-shadow: 0 0 20px var(--primary-glow);"></div>
-    </div>
-
+    <script src="chat.js?v=1.0"></script>
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyAj4pBH0zjbCIbUHp0ldmW8eU8pJTZnquo", authDomain: "weebokage-296c0.firebaseapp.com", projectId: "weebokage-296c0", storageBucket: "weebokage-296c0.firebasestorage.app", messagingSenderId: "192569800499", appId: "1:192569800499:web:4c5ef67242b7fdd0b2b046" };
-        firebase.initializeApp(firebaseConfig);
-
-        let isMaster = false;
-        firebase.auth().onAuthStateChanged(user => {
-            const adminBtn = document.getElementById('admin-btn');
-            const islamNav = document.getElementById('nav-islam');
-            if (user) {
-                isMaster = true;
-                if(islamNav) islamNav.style.setProperty('display', 'inline-block', 'important');
-                adminBtn.innerText = "Logoff";
-                adminBtn.href = "javascript:void(0)";
-                adminBtn.onclick = () => { firebase.auth().signOut().then(() => location.reload()); };
-            } else {
-                isMaster = false;
-                if(islamNav) islamNav.style.setProperty('display', 'none', 'important');
-                adminBtn.innerText = "Admin";
-                adminBtn.href = "login.html";
-                adminBtn.onclick = null;
+        "use strict";
+        Weebokage.initFirebase();
+        Weebokage.setTheme(localStorage.getItem("theme") || "miku");
+        WeebokageChat.initialize();
+        async function loadTransit() {
+            const grid = document.getElementById("transit-grid");
+            try {
+                const response = await Weebokage.apiFetch("/admin/config");
+                const data = await response.json();
+                grid.replaceChildren();
+                for (const entry of data.transit || []) {
+                    const card = document.createElement("article");
+                    card.className = "card stop-card";
+                    const header = document.createElement("div");
+                    header.className = "stop-header";
+                    const icon = document.createElement("i");
+                    icon.className = "fas fa-bus";
+                    icon.setAttribute("aria-hidden", "true");
+                    const title = document.createElement("h2");
+                    title.textContent = entry.name;
+                    const frame = document.createElement("iframe");
+                    frame.className = "vrs-widget";
+                    frame.loading = "lazy";
+                    frame.title = "Departures from " + entry.name;
+                    frame.src = Weebokage.safeUrl(entry.url);
+                    header.append(icon, title);
+                    card.append(header, frame);
+                    grid.appendChild(card);
+                }
+                if (!grid.childElementCount) grid.innerHTML = "<p class='status-message'>No transit links are configured.</p>";
+            } catch (_) {
+                grid.innerHTML = "<p class='status-message'>Protected departures are unavailable. Check backend configuration.</p>";
             }
-            updateGreeting();
+        }
+
+        Weebokage.bindAuthNavigation({
+            onChange(user) {
+                if (!user) {
+                    window.location.replace("login.html?next=transit.html");
+                    return;
+                }
+                document.body.classList.remove("guarded");
+                loadTransit();
+                WeebokageChat.setUser(user);
+            }
         });
 
-        // --- THEME ENGINE ---
-        function setTheme(t) {
-            const oldTheme = document.documentElement.getAttribute('data-theme');
-            document.documentElement.setAttribute('data-theme', t);
-            localStorage.setItem('theme', t);
-            
-            const toggle = document.getElementById('theme-toggle');
-            if(toggle) toggle.checked = (t === 'teto');
-
-            if(document.getElementById('ai-title')) document.getElementById('ai-title').innerText = (t === 'teto') ? "TETO SYSTEM 04" : "MIKU SYSTEM 01";
-            if(oldTheme !== t) updateGreeting();
-        }
-
-        function updateGreeting() {
-            const t = localStorage.getItem('theme') || 'miku';
-            const msgBox = document.getElementById('miku-msgs');
-            if(!msgBox) return;
-            msgBox.innerHTML = "";
-            let g = t === 'teto' ? (isMaster ? "Master! Teto 04 active. 🥖" : "User! Teto 04 active. 🥖") : (isMaster ? "Welcome back, Master! Miku 01 at your service! 🩵" : "Hello! Miku 01 is online, User! 🩵");
-            msgBox.innerHTML = `<div style="background: rgba(57, 197, 187, 0.1); padding: 12px; border-radius: 12px; border: 1px solid var(--primary); align-self: flex-start; max-width: 85%;">${g}</div>`;
-        }
-        setTheme(localStorage.getItem('theme') || 'miku');
-        function themeToggle() { setTheme(document.getElementById('theme-toggle').checked ? 'teto' : 'miku'); }
-
-        // --- WEATHER ---
-        async function fetchWeather(lat, lon, id) {
+        async function fetchWeather(latitude, longitude, id) {
+            const card = document.getElementById(id);
             try {
-                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-                const data = await res.json();
-                const card = document.getElementById(id);
-                card.querySelector('.weather-temp').innerText = `${Math.round(data.current_weather.temperature)}°C`;
-                card.querySelector('.weather-desc').innerText = `Wind: ${data.current_weather.windspeed} km/h`;
-            } catch (e) { console.error("Weather error"); }
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                const response = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + latitude + "&longitude=" + longitude + "&current_weather=true", { signal: controller.signal });
+                clearTimeout(timeout);
+                if (!response.ok) throw new Error("Weather unavailable");
+                const data = await response.json();
+                card.querySelector(".weather-temp").textContent = Math.round(data.current_weather.temperature) + "°C";
+                card.querySelector(".weather-desc").textContent = "Wind: " + data.current_weather.windspeed + " km/h";
+            } catch (_) {
+                card.querySelector(".weather-desc").textContent = "Weather unavailable";
+            }
         }
-        function updateAllWeather() { fetchWeather(51.08, 7.11, 'weather-burscheid'); fetchWeather(50.93, 6.95, 'weather-koeln'); }
-        updateAllWeather(); setInterval(updateAllWeather, 600000);
-
-        // --- AI CHAT ---
-        function toggleMiku() { const win = document.getElementById('miku-window'); win.style.display = (win.style.display === 'none' || win.style.display === '') ? 'flex' : 'none'; }
-        async function askMiku() {
-            const inp = document.getElementById('miku-input'); const box = document.getElementById('miku-msgs'); const val = inp.value.trim();
-            if(!val) return;
-            box.innerHTML += `<div style="background: var(--primary); color: black; padding: 12px; border-radius: 12px; align-self: flex-end; max-width: 85%; font-weight: bold;">${val}</div>`;
-            inp.value = "";
-            const load = document.createElement("div"); load.style.cssText = "background: rgba(57, 197, 187, 0.1); padding: 12px; border-radius: 12px; border: 1px solid var(--primary); align-self: flex-start;";
-            load.innerText = "..."; box.appendChild(load); box.scrollTop = box.scrollHeight;
-            try {
-                const res = await fetch("https://weebokageofficial-github-io.onrender.com/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: String(val), theme: localStorage.getItem('theme') || 'miku', is_master: isMaster }) });
-                const data = await res.json(); load.innerText = data.reply;
-            } catch (e) { load.innerText = "Connection lost."; }
-            box.scrollTop = box.scrollHeight;
+        function updateWeather() {
+            fetchWeather(51.08, 7.11, "weather-burscheid");
+            fetchWeather(50.93, 6.95, "weather-koeln");
         }
-        document.getElementById('miku-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') askMiku(); });
+        updateWeather();
+        setInterval(updateWeather, 600000);
     </script>
 </body>
 </html>
