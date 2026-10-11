@@ -8,6 +8,8 @@ from threading import Lock
 from typing import Literal
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +36,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://weebokage.com",
+        "https://www.weebokage.com",
         "https://weebokageofficial.github.io",
         "http://127.0.0.1:5500",
         "http://localhost:5500",
@@ -42,6 +45,7 @@ app.add_middleware(
     ],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
+    expose_headers=["Retry-After"],
 )
 security = HTTPBearer(auto_error=False)
 
@@ -70,9 +74,28 @@ def clean_text(value):
 
 
 def get_json(url, params=None, timeout=10):
-    response = requests.get(url, params=params, timeout=timeout)
-    response.raise_for_status()
-    return response.json()
+    # Retry only idempotent reads; never duplicate chat POST requests.
+    retry = Retry(total=2, backoff_factor=0.5, status_forcelist=[429, 502, 503, 504],
+                  allowed_methods=["GET"], respect_retry_after_header=False, raise_on_status=False)
+    with requests.Session() as session:
+        session.mount("https://", HTTPAdapter(max_retries=retry))
+        response = session.get(url, params=params, timeout=timeout,
+                               headers={"Accept": "application/json", "User-Agent": "Weebokage/1.0 (https://weebokage.com)"})
+        response.raise_for_status()
+        return response.json()
+
+
+def anime_service_error(error):
+    response = getattr(error, "response", None)
+    status = response.status_code if response is not None else None
+    if status == 429:
+        return HTTPException(status_code=503, detail="Anime provider rate limit reached. Please try again later.",
+                             headers={"Retry-After": "60"})
+    if status == 403:
+        return HTTPException(status_code=502, detail="Anime provider denied the backend request (403).")
+    if status == 404:
+        return HTTPException(status_code=404, detail="Anime not found.")
+    return HTTPException(status_code=502, detail="Anime service unavailable.")
 
 
 @tool
@@ -165,6 +188,8 @@ def language_models():
                 model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
                 groq_api_key=key,
                 temperature=0.7,
+                timeout=20,
+                max_retries=0,
             )
             tool_model = base_model.bind_tools(TOOLS)
     return base_model, tool_model
@@ -282,6 +307,14 @@ def chat(
             return {"reply": reply}
         except Exception as error:
             logger.exception("Chat failed")
+            provider_status = getattr(error, "status_code", None)
+            if provider_status == 401:
+                raise HTTPException(status_code=503, detail="Chat provider rejected the server API key.") from error
+            if provider_status == 403:
+                raise HTTPException(status_code=502, detail="Chat provider denied access. Check server model permissions.") from error
+            if provider_status == 429:
+                raise HTTPException(status_code=503, detail="Chat provider quota or rate limit reached.",
+                                    headers={"Retry-After": "60"}) from error
             raise HTTPException(status_code=502, detail="Chat service unavailable.") from error
 
 
@@ -296,7 +329,7 @@ def anime_proxy(request: Request, search: str | None = Query(default=None, max_l
         return get_json(url, params).get("data", [])
     except requests.RequestException as error:
         logger.exception("Anime proxy failed")
-        raise HTTPException(status_code=502, detail="Anime service unavailable.") from error
+        raise anime_service_error(error) from error
 
 
 @app.get("/anime-detail/{mal_id}")
@@ -310,7 +343,7 @@ def anime_detail(mal_id: int, request: Request):
         return {"info": info, "characters": characters[:10]}
     except requests.RequestException as error:
         logger.exception("Anime detail failed")
-        raise HTTPException(status_code=502, detail="Anime service unavailable.") from error
+        raise anime_service_error(error) from error
 
 
 @app.get("/hadith/random")

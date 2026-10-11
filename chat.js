@@ -45,12 +45,12 @@
                     theme: localStorage.getItem("theme") || "miku",
                     session_id: Weebokage.sessionId()
                 }),
-                timeout: 30000
+                timeout: 65000
             });
             const data = await response.json();
             loading.textContent = data.reply || "Neural sync failed.";
         } catch (error) {
-            loading.textContent = error.name === "AbortError" ? "Request timed out." : "Connection lost.";
+            loading.textContent = error.name === "AbortError" ? "Request timed out." : error.message;
         } finally {
             input.disabled = false;
             input.focus();

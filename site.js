@@ -65,22 +65,46 @@
     }
 
     async function apiFetch(path, options = {}) {
+        const { timeout = 65000, headers: suppliedHeaders, ...requestOptions } = options;
         const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), options.timeout || 20000);
+        const timer = window.setTimeout(() => controller.abort(), timeout);
         try {
-            const headers = {
-                ...(await authHeaders(Boolean(options.body))),
-                ...(options.headers || {})
-            };
+            // Public catalogue requests do not need a Firebase token or preflight.
+            const needsAuth = path.startsWith("/admin/") || path.startsWith("/hadith/") || path === "/chat";
+            const headers = new Headers(needsAuth ? await authHeaders(Boolean(options.body)) : {});
+            headers.set("Accept", "application/json");
+            if (options.body) headers.set("Content-Type", "application/json");
+            new Headers(suppliedHeaders).forEach((value, key) => headers.set(key, value));
             const response = await fetch(apiBase + path, {
-                ...options,
+                ...requestOptions,
                 headers,
                 signal: controller.signal
             });
-            if (!response.ok) throw new Error("Request failed (" + response.status + ")");
+            if (!response.ok) {
+                let detail = "";
+                if (response.headers.get("Content-Type")?.includes("application/json")) {
+                    const data = await response.json().catch(() => ({}));
+                    if (typeof data.detail === "string") detail = data.detail;
+                }
+                const fallback = {
+                    401: "Please sign in again.",
+                    403: "Access denied. Check the account permissions.",
+                    429: "Too many requests. Please wait before trying again.",
+                    502: "The upstream service is unavailable.",
+                    503: "The backend is unavailable or not configured."
+                };
+                const error = new Error(detail || fallback[response.status] || "Request failed.");
+                error.status = response.status;
+                throw error;
+            }
             return response;
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw new Error("Cannot reach the API. Check the network, backend availability and CORS settings.");
+            }
+            throw error;
         } finally {
-            window.clearTimeout(timeout);
+            window.clearTimeout(timer);
         }
     }
 

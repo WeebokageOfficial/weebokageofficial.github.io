@@ -98,12 +98,18 @@
                     frame.title = "Departures from " + entry.name;
                     frame.src = Weebokage.safeUrl(entry.url);
                     header.append(icon, title);
-                    card.append(header, frame);
+                    const link = document.createElement("a");
+                    link.href = Weebokage.safeUrl(entry.url);
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    link.textContent = "Open departures directly (if the embedded view is blocked)";
+                    card.append(header, link, frame);
                     grid.appendChild(card);
                 }
                 if (!grid.childElementCount) grid.innerHTML = "<p class='status-message'>No transit links are configured.</p>";
-            } catch (_) {
+            } catch (error) {
                 grid.innerHTML = "<p class='status-message'>Protected departures are unavailable. Check backend configuration.</p>";
+                grid.firstElementChild.textContent = error.message;
             }
         }
 

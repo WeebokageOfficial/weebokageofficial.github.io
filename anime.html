@@ -138,8 +138,9 @@
                     results.appendChild(card);
                 });
                 if (!list.length) results.innerHTML = '<p class="status-message" style="grid-column:1/-1">No anime found.</p>';
-            } catch (_) {
+            } catch (error) {
                 results.innerHTML = '<p class="status-message" style="grid-column:1/-1">The anime archive is currently unavailable.</p>';
+                results.firstElementChild.textContent = error.message;
             }
         }
 
@@ -154,8 +155,9 @@
             try {
                 const response = await Weebokage.apiFetch("/anime-detail/" + malId);
                 renderModal(await response.json());
-            } catch (_) {
+            } catch (error) {
                 content.innerHTML = '<p class="status-message" style="padding:80px 20px">Anime details are currently unavailable.</p>';
+                content.firstElementChild.textContent = error.message;
             }
         }
 

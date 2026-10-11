@@ -63,3 +63,64 @@ Keep public account registration disabled if every signed-in Firebase user shoul
 5. In GitHub Pages settings, enable **Enforce HTTPS**.
 6. Verify Google Drive folder permissions; a URL in static HTML is not access control.
 7. Publish the frontend only after explicit approval.
+
+
+## API diagnostics and fixes
+
+The browser uses `site.js: apiFetch`; `chat.js` calls `POST /chat`, and the inline
+scripts in `anime.html` call `GET /anime-proxy?search=...` and
+`GET /anime-detail/{mal_id}`. `transit.html` calls `GET /admin/config` with a
+Firebase ID token. There is no axios dependency or TypeScript in this checkout.
+The remaining direct fetch calls in `transit.html` (weather) and `islam.html`
+(prayer times) are separate integrations.
+
+All three main integrations already use the FastAPI backend as a proxy:
+
+```text
+Browser -> Render FastAPI -> Groq / Jikan
+Browser -> Render /admin/config -> protected VRS widget URLs -> iframe
+```
+
+Do not put the Groq key in browser code. LangChain supplies Groq's Bearer header
+and chat completion payload server-side. Jikan v4 needs no API key; search uses
+`q` and returns a `data` array, which the backend unwraps. The frontend chat
+payload is `{message, theme, session_id}`; this is our backend contract, not the
+Groq wire format.
+
+Live checks on 2026-10-11 returned:
+
+- `/health`: 200, `chat_configured: true`, `admin_verification_configured: false`.
+- `/admin/config`: 503, `Admin verification is not configured.`
+- `/anime-proxy`: 502, `Anime service unavailable.` The deployed response hides
+  the upstream status, so the precise provider failure needs backend logs.
+- `/chat` preflight: 200 for `https://weebokage.com`; 400 for
+  `https://www.weebokage.com`. The local CORS configuration now allows both.
+
+Set `ADMIN_UID` in Render to the UID from Firebase Authentication and configure
+valid `TRANSIT_*_URL` values. An authenticated account with a different UID
+correctly receives 403. A present Groq key does not establish that it is valid
+or that the configured model is permitted.
+
+The frontend now displays backend error details and permits 65 seconds for
+Render startup. Public anime reads omit unnecessary Firebase authentication.
+Backend GET requests retry transient errors twice; chat requests are not
+retried. An upstream Jikan 403 is identified separately from user permissions.
+Retries cannot repair a persistent provider block.
+
+A VRS iframe failure is separate from fetch/CORS: verify the widget URL and
+inspect its response plus `X-Frame-Options` / CSP `frame-ancestors`. Each widget
+now has a direct link. If the provider forbids embedding, use its supported
+widget or a documented departures API with server-side access; adding CORS
+headers to an HTML proxy does not resolve that restriction.
+
+Deploy the changed backend and frontend for these fixes to take effect.
+No hosting configuration or secrets are changed by the local edits.
+
+Regression checks (requires `httpx` in the development environment):
+
+```sh
+python -m unittest discover -s tests -q
+```
+
+Specification references: [Groq API](https://console.groq.com/docs/api-reference),
+[Jikan v4](https://docs.api.jikan.moe/).
