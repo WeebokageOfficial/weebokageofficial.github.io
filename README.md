@@ -124,3 +124,13 @@ python -m unittest discover -s tests -q
 
 Specification references: [Groq API](https://console.groq.com/docs/api-reference),
 [Jikan v4](https://docs.api.jikan.moe/).
+
+## Anime provider migration
+
+The backend now defaults to `https://api.tenrai.org/v1`, which uses the Jikan-compatible
+response format. The previous Jikan host failed with connection errors in Render logs.
+Set `ANIME_API_BASE` in Render to override the provider, including its version path,
+then redeploy the updated backend. Search, details, characters, and the chat anime tool
+all use this setting. No anime API secret is needed for public access.
+
+Provider documentation: https://api.tenrai.org/documentation

@@ -30,7 +30,7 @@ class ApiTests(unittest.TestCase):
         with patch.object(main, 'get_json', return_value={'data': [{'mal_id': 20}]}) as upstream:
             response = self.client.get('/anime-proxy', params={'search': 'Naruto & friends'})
         self.assertEqual(response.json(), [{'mal_id': 20}])
-        upstream.assert_called_once_with('https://api.jikan.moe/v4/anime',
+        upstream.assert_called_once_with(main.ANIME_API_BASE + '/anime',
                                         {'limit': 12, 'q': 'Naruto & friends'})
 
     def test_upstream_failure_retains_cors(self):
@@ -78,6 +78,27 @@ class ApiTests(unittest.TestCase):
                     'message': 'Hello', 'session_id': 'test-session-123'})
         self.assertEqual(response.status_code, 502)
         self.assertIn('model permissions', response.json()['detail'])
+
+    def test_failed_chat_restores_history(self):
+        model = Mock()
+        model.invoke.side_effect = RuntimeError('provider unavailable')
+        payload = {'message': 'Hello', 'session_id': 'test-session-recovery'}
+        with patch.object(main, 'language_models', return_value=(model, model)):
+            with self.assertLogs('weebokage', level='ERROR'):
+                self.assertEqual(self.client.post('/chat', json=payload).status_code, 502)
+            state = main.chat_sessions[payload['session_id']]
+            self.assertEqual(len(state.messages), 1)
+            model.invoke.side_effect = None
+            model.invoke.return_value = Mock(content='Hello', tool_calls=[])
+            self.assertEqual(self.client.post('/chat', json=payload).status_code, 200)
+            self.assertEqual(len(state.messages), 3)
+
+    def test_anime_timeout(self):
+        with patch.object(main, 'get_json', side_effect=main.requests.Timeout('timeout')):
+            with self.assertLogs('weebokage', level='ERROR'):
+                response = self.client.get('/anime-proxy')
+        self.assertEqual(response.status_code, 504)
+        self.assertIn('timed out', response.json()['detail'])
 
     def test_transit_configuration_and_permissions(self):
         with patch.dict(os.environ, {'ADMIN_UID': ''}):

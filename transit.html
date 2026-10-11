@@ -106,7 +106,7 @@
                     card.append(header, link, frame);
                     grid.appendChild(card);
                 }
-                if (!grid.childElementCount) grid.innerHTML = "<p class='status-message'>No transit links are configured.</p>";
+                if (!grid.childElementCount) grid.innerHTML = "<p class='status-message'>No transit links are configured. Set valid HTTPS departure URLs in Render: TRANSIT_NAGELSBAUM_URL, TRANSIT_OPLADEN_URL, TRANSIT_LEVERKUSEN_URL and TRANSIT_MERHEIM_URL.</p>";
             } catch (error) {
                 grid.innerHTML = "<p class='status-message'>Protected departures are unavailable. Check backend configuration.</p>";
                 grid.firstElementChild.textContent = error.message;

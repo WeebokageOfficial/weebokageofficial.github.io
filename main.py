@@ -28,6 +28,7 @@ logger = logging.getLogger("weebokage")
 
 PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "weebokage-296c0")
 ADMIN_UID = os.getenv("ADMIN_UID", "")
+ANIME_API_BASE = (os.getenv("ANIME_API_BASE") or "https://api.tenrai.org/v1").rstrip("/")
 CHAT_TTL = 3600
 MAX_SESSIONS = 500
 
@@ -88,6 +89,8 @@ def get_json(url, params=None, timeout=10):
 def anime_service_error(error):
     response = getattr(error, "response", None)
     status = response.status_code if response is not None else None
+    if isinstance(error, requests.Timeout):
+        return HTTPException(status_code=504, detail="Anime provider timed out. Please try again later.")
     if status == 429:
         return HTTPException(status_code=503, detail="Anime provider rate limit reached. Please try again later.",
                              headers={"Retry-After": "60"})
@@ -124,8 +127,8 @@ def get_verified_hadith(topic: str = "", number: str = ""):
 
 @tool
 def get_anime_info(search_query: str = ""):
-    """Search anime information through Jikan."""
-    url = "https://api.jikan.moe/v4/anime" if search_query else "https://api.jikan.moe/v4/top/anime"
+    """Search anime information through the configured anime provider."""
+    url = ANIME_API_BASE + "/anime" if search_query else ANIME_API_BASE + "/top/anime"
     params = {"limit": 5}
     if search_query:
         params["q"] = search_query[:100]
@@ -291,6 +294,7 @@ def chat(
             state.messages = []
         if not state.messages:
             state.messages.append(SystemMessage(content=prompt))
+        previous_messages = list(state.messages)
         state.messages.append(HumanMessage(content=payload.message.strip()))
         try:
             response = model_with_tools.invoke(state.messages)
@@ -303,11 +307,19 @@ def chat(
                 response = plain_model.invoke(state.messages)
             reply = clean_text(response.content)
             state.messages.append(AIMessage(content=reply))
-            state.messages = [state.messages[0]] + state.messages[-11:]
+            # Keep complete user/assistant turns, including any tool messages.
+            turns = [i for i, message in enumerate(state.messages) if isinstance(message, HumanMessage)]
+            if len(turns) > 5:
+                state.messages = [state.messages[0]] + state.messages[turns[-5]:]
             return {"reply": reply}
         except Exception as error:
+            state.messages = previous_messages
             logger.exception("Chat failed")
             provider_status = getattr(error, "status_code", None)
+            if provider_status == 400:
+                raise HTTPException(status_code=502, detail="Chat provider rejected the model request. Check Render logs for model or tool-call errors.") from error
+            if provider_status == 404:
+                raise HTTPException(status_code=503, detail="Chat model not found. Check GROQ_MODEL in Render.") from error
             if provider_status == 401:
                 raise HTTPException(status_code=503, detail="Chat provider rejected the server API key.") from error
             if provider_status == 403:
@@ -321,7 +333,7 @@ def chat(
 @app.get("/anime-proxy")
 def anime_proxy(request: Request, search: str | None = Query(default=None, max_length=100)):
     enforce_rate_limit(request, 60)
-    url = "https://api.jikan.moe/v4/anime" if search else "https://api.jikan.moe/v4/top/anime"
+    url = ANIME_API_BASE + "/anime" if search else ANIME_API_BASE + "/top/anime"
     params = {"limit": 12}
     if search:
         params["q"] = search.strip()
@@ -338,8 +350,8 @@ def anime_detail(mal_id: int, request: Request):
     if mal_id <= 0:
         raise HTTPException(status_code=400, detail="Invalid anime id.")
     try:
-        info = get_json("https://api.jikan.moe/v4/anime/{}/full".format(mal_id)).get("data", {})
-        characters = get_json("https://api.jikan.moe/v4/anime/{}/characters".format(mal_id)).get("data", [])
+        info = get_json(ANIME_API_BASE + "/anime/{}/full".format(mal_id)).get("data", {})
+        characters = get_json(ANIME_API_BASE + "/anime/{}/characters".format(mal_id)).get("data", [])
         return {"info": info, "characters": characters[:10]}
     except requests.RequestException as error:
         logger.exception("Anime detail failed")
