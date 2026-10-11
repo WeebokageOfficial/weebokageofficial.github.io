@@ -48,6 +48,23 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'reply': 'OK'})
 
+    def test_chat_retains_context_and_reply_formatting(self):
+        model = Mock()
+        reply = "*smiles* Let's inspect it.\n\n```python\nprint('hello')\n```"
+        model.invoke.return_value = Mock(content=reply, tool_calls=[])
+        with patch.object(main, 'language_models', return_value=(model, model)):
+            for number in range(13):
+                response = self.client.post('/chat', json={
+                    'message': str(number), 'theme': 'teto', 'session_id': 'context-session'})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()['reply'], reply)
+        messages = main.chat_sessions['context-session'].messages
+        self.assertIsInstance(messages[0], main.SystemMessage)
+        self.assertIn('TETO SYSTEM 04', messages[0].content)
+        self.assertEqual(len(messages), 25)
+        self.assertIsInstance(messages[1], main.HumanMessage)
+        self.assertEqual(messages[1].content, '1')
+
     def test_missing_chat_key(self):
         with patch.dict(os.environ, {'GROQ_API_KEY': ''}), \
                 patch.object(main, 'base_model', None), patch.object(main, 'tool_model', None):

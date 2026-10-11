@@ -10,7 +10,7 @@
         message.textContent = text;
         message.style.cssText = ownMessage
             ? "background:var(--primary);color:#000;padding:12px;border-radius:12px;align-self:flex-end;max-width:85%;font-weight:bold;overflow-wrap:anywhere"
-            : "background:rgba(57,197,187,.1);padding:12px;border-radius:12px;border:1px solid var(--primary);align-self:flex-start;max-width:85%;overflow-wrap:anywhere";
+            : "background:rgba(57,197,187,.1);padding:12px;border-radius:12px;border:1px solid var(--primary);align-self:flex-start;max-width:85%;white-space:pre-wrap;overflow-wrap:anywhere";
         box.appendChild(message);
         box.scrollTop = box.scrollHeight;
         return message;
