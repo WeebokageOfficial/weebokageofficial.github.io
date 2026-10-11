@@ -61,7 +61,7 @@
         "use strict";
         Weebokage.initFirebase();
         Weebokage.setTheme(localStorage.getItem("theme") || "miku");
-        const allowedDestinations = new Set(["downloads.html", "transit.html", "islam.html"]);
+        const allowedDestinations = new Set(["downloads.html", "transit.html", "islam.html", "lifeos.html"]);
         const requestedDestination = new URLSearchParams(window.location.search).get("next");
         const destination = allowedDestinations.has(requestedDestination) ? requestedDestination : "downloads.html";
 

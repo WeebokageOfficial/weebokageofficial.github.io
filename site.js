@@ -70,7 +70,7 @@
         const timer = window.setTimeout(() => controller.abort(), timeout);
         try {
             // Public catalogue requests do not need a Firebase token or preflight.
-            const needsAuth = path.startsWith("/admin/") || path.startsWith("/hadith/") || path === "/chat";
+            const needsAuth = path.startsWith("/admin/") || path.startsWith("/hadith/") || path === "/chat" || path.startsWith("/lifeos/lore-import");
             const headers = new Headers(needsAuth ? await authHeaders(Boolean(options.body)) : {});
             headers.set("Accept", "application/json");
             if (options.body) headers.set("Content-Type", "application/json");

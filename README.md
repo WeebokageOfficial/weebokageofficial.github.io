@@ -134,3 +134,54 @@ then redeploy the updated backend. Search, details, characters, and the chat ani
 all use this setting. No anime API secret is needed for public access.
 
 Provider documentation: https://api.tenrai.org/documentation
+
+## LifeOS
+
+`lifeos.html`, `lifeos.css`, and `lifeos.js` provide the English dashboard. Existing
+`weebokage.lifeos.v1` browser data is retained, including migration of legacy German
+category labels. Changes save automatically on this device; a rolling local backup
+can recover a damaged primary record. Export/restore JSON backups to move progress
+between browsers/devices. This is local storage, not account-based cloud sync.
+
+The splash screen closes automatically or via Enter LifeOS. Companion bubbles call
+`POST /lifeos/quote` through Render using `GROQ_API_KEY` and `GROQ_MODEL`. Each tab
+has its own prompt and local fallback; Imam uses respectful Islamic expressions.
+Generated companion lines are separate from the sourced, curated hadith card.
+
+Lore PDF import calls `POST /lifeos/lore-import?filename=...` with raw PDF bytes and
+`Content-Type: application/pdf`. It requires the Firebase owner identified by
+`ADMIN_UID`. The PDF text is sent to Groq for categorisation; neither the original
+PDF nor its text is persisted by the backend. Up to three files can be selected in
+the UI, processed sequentially, each at most 5 MB, 40 pages and 60,000 extracted
+characters. Scans need OCR first; pages without readable text are reported.
+Extracted notes include source filename/page references and must be reviewed before
+being saved as drafts in the browser archive. Closing review saves nothing.
+
+Deploy the updated backend with the updated `requirements.txt` (including pypdf)
+and publish the updated frontend together. No additional API key is needed. If the
+new endpoints are not deployed or Groq is unavailable, companion bubbles use local
+lines and the dashboard remains usable; PDF import displays the backend error.
+
+LifeOS is installable over HTTPS (or localhost) through `manifest.json` and `sw.js`.
+The first online visit caches the dashboard, shared JS, wallpaper, icons and all
+five sprites. Later offline launches retain local progress, tools and cached prayer
+times; AI speech and PDF analysis still require a connection. Only explicitly
+listed static LifeOS assets are cached, never API responses or uploaded PDFs.
+Bump `lifeos-shell-v1` in `sw.js` when releasing changed shell assets.
+
+Companion prompts include local time of day, activity streak and yesterday’s saved
+open-quest count. Local fallback lines use the same context. Web Audio synthesises
+completion blips and level-up arpeggios; the mute preference persists in the save.
+Rank titles change at levels 3, 6 and 10, with a title-unlock announcement.
+
+The Imam tab loads today and tomorrow from Aladhan, defaulting to Cologne/Germany,
+Muslim World League (method 3). City/country and calculation method are editable;
+Use my location requests browser geolocation explicitly. Returned timezone-aware
+timestamps drive the next-prayer countdown, including tomorrow’s Fajr after Isha.
+Schedules and manual overrides are saved locally. Each daily prayer awards 20 XP
+once; older checked prayers are treated as already rewarded during migration.
+Prayer times depend on the calculation method; match your local mosque as needed.
+
+Export downloads `lifeos_backup.json`, containing all LifeOS state, including sound,
+prayer settings, notes, finance entries and progress (other website storage is not
+exported). Import validates before replacing progress and retains a rolling backup.

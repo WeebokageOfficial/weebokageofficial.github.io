@@ -1,0 +1,16 @@
+{
+  "id": "./lifeos.html",
+  "name": "LifeOS",
+  "short_name": "LifeOS",
+  "description": "Your Vocaloid dashboard for habits, quests, lore, budgets and daily reflection.",
+  "lang": "en",
+  "start_url": "./lifeos.html",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#0a0e14",
+  "background_color": "#0a0e14",
+  "icons": [
+    { "src": "assets/mikukage.webp", "sizes": "512x512", "type": "image/webp", "purpose": "any" },
+    { "src": "assets/mikukage.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

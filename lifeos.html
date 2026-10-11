@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0e14">
+  <meta name="description" content="LifeOS — your Vocaloid dashboard for daily habits, stories, budgeting and focus.">
+  <title>LifeOS // Weebokage</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/mikukage.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="lifeos.css">
+  <script src="site.js?v=lifeos-3" defer></script>
+  <script src="lifeos.js?v=3" defer></script>
+</head>
+<body class="lifeos-loading">
+  <div id="splash" class="splash" aria-label="LifeOS startup">
+    <img src="assets/mikukage.webp" alt="Miku" class="splash-avatar">
+    <p class="eyebrow">WEEBOKAGE // PERSONAL SECTOR</p><h1>LIFE<span>OS</span>_</h1>
+    <p class="subtitle">Welcome back, Producer. Let’s find your rhythm.</p>
+    <div class="splash-loader" aria-hidden="true"><span></span></div><p id="splash-status" class="mini-label">RESTORING YOUR SAVED PROGRESS…</p>
+    <button type="button" id="enter-lifeos" class="primary">Enter LifeOS ↗</button>
+  </div>
+  <div id="dashboard" class="dashboard" inert>
+    <nav class="site-nav" aria-label="Main navigation"><a class="brand" href="index.html">W<span>//</span>K</a><div class="links"><a href="index.html">Home</a><a href="transit.html" class="admin-hide" id="nav-transit" hidden>Transit</a><a href="islam.html" class="admin-hide" id="nav-islam" hidden>Islam</a><a href="anime.html">Anime</a><a href="games.html">Games</a><a href="credits.html">Credits</a><a href="lifeos.html" aria-current="page">LifeOS</a><a href="login.html?next=lifeos.html" id="lifeos-login">Admin</a></div><span class="connection"><i></i> LOCAL SYSTEM</span></nav>
+    <main>
+      <header class="page-heading"><div><p class="eyebrow">PERSONAL OPERATING SYSTEM / V.01</p><h1>LIFE<span>OS</span><span class="cursor">_</span></h1><p class="subtitle">Small steps. Higher frequency. Your life, in sync.</p></div><div class="header-utilities"><div class="app-controls"><button type="button" id="sound-toggle" class="small-button" data-action="toggle-sound" aria-label="Mute sounds" aria-pressed="false">🔊</button><button type="button" id="install-app" class="small-button" data-action="install-app">＋ Install app</button><span id="pwa-status" class="mini-label" role="status">LOCAL SYSTEM</span></div><div class="date-terminal"><span id="today-label"></span><span>WEEBOKAGE // PERSONAL SECTOR</span></div></div></header>
+      <section class="card synchronization" aria-label="Level and synchronization"><div class="status-line"><span class="badge" id="level-label">LV. 1 CYBER NOVICE</span><span class="streak" id="streak-label">🔥 0D SYNC</span></div><div class="progress-label"><span>NEURAL SYNCHRONIZATION</span><span id="xp-label">0 / 100 XP (0%)</span></div><progress id="xp-bar" max="100" value="0" aria-label="Progress to the next level"></progress></section>
+      <section class="card persona" aria-label="Your companion"><div class="sprite-frame"><img id="persona-sprite" src="assets/sprites/sprite_lifestyle.png" alt="Miku holding a notebook and a mug"><span class="sprite-caption">COMPANION // ONLINE</span></div><div class="persona-copy"><div class="persona-meta"><span class="eyebrow" id="persona-system">01 // SYSTEM IDOL</span><span class="sync-value">[SYNC: 99.8%]</span></div><h2 id="persona-name">HATSUNE MIKU</h2><p id="persona-role" class="subtitle">Your next small step matters.</p><div class="quote-bubble"><p id="persona-quote" aria-live="polite"></p><button type="button" id="refresh-quote" class="icon-button" aria-label="Generate another companion line">↻</button></div><span id="quote-source" class="mini-label">COMPANION READY</span><span class="mini-label motto">ONE DAY AT A TIME. ONE LEVEL CLOSER.</span></div></section>
+      <div class="save-toolbar"><span id="save-status" role="status">Progress saved on this device</span><div><button type="button" class="small-button" data-action="export-backup">↓ Export backup</button><button type="button" class="small-button" data-action="restore-backup">↑ Restore backup</button><input type="file" id="backup-file" accept="application/json,.json" hidden></div></div>
+      <div class="tabs" role="tablist" aria-label="LifeOS modules"><button role="tab" id="tab-lifestyle" aria-controls="module-panel" aria-selected="true" data-tab="lifestyle"><span aria-hidden="true">◈</span> Lifestyle</button><button role="tab" id="tab-lore" aria-controls="module-panel" aria-selected="false" tabindex="-1" data-tab="lore"><span aria-hidden="true">▤</span> Lore</button><button role="tab" id="tab-finance" aria-controls="module-panel" aria-selected="false" tabindex="-1" data-tab="finance"><span aria-hidden="true">↗</span> Finance</button><button role="tab" id="tab-teto" aria-controls="module-panel" aria-selected="false" tabindex="-1" data-tab="teto"><span aria-hidden="true">⌘</span> Teto Tools</button><button role="tab" id="tab-imam" aria-controls="module-panel" aria-selected="false" tabindex="-1" data-tab="imam"><span aria-hidden="true">☾</span> Imam</button></div>
+      <section id="module-panel" role="tabpanel" aria-labelledby="tab-lifestyle" tabindex="0"></section>
+      <footer><span><i class="online-dot"></i> YOUR PROGRESS IS SAVED ON THIS DEVICE</span><span>LIFEOS // MAKE YOUR OWN RHYTHM</span></footer>
+    </main>
+    <div id="title-unlock" class="title-unlock" role="status" aria-live="polite" hidden><span class="eyebrow">✦ TITLE UNLOCKED ✦</span><strong id="unlocked-title"></strong><span id="unlocked-level"></span></div>
+    <p id="notification" class="notification" role="status" aria-live="polite"></p>
+    <dialog id="editor-dialog"><form id="editor-form"><div class="section-heading"><h2 id="editor-title"></h2><button type="button" data-action="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><div id="editor-fields"></div><div class="form-actions"><button type="button" data-action="close-dialog" class="secondary">Cancel</button><button type="submit" class="primary">Save ↗</button></div></form></dialog>
+    <dialog id="import-dialog"><form id="import-review-form"><div class="section-heading"><h2>Miku’s PDF archive review</h2><button type="button" class="icon-button" data-action="close-import" aria-label="Close review">×</button></div><p class="hint">Review and edit the extracted notes. Only selected notes are added to your archive.</p><div id="import-review"></div><div class="form-actions"><button type="button" class="secondary" data-action="close-import">Cancel</button><button type="submit" class="primary">Save selected notes ↗</button></div></form></dialog>
+    <noscript><style>.splash{display:none}.lifeos-loading{overflow:auto}</style>Please enable JavaScript to use LifeOS.</noscript>
+  </div>
+</body>
+</html>

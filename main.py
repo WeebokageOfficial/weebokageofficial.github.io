@@ -284,7 +284,8 @@ rate_lock = Lock()
 
 
 def enforce_rate_limit(request, limit, window_seconds=60):
-    key = request.client.host if request.client else "unknown"
+    client_host = request.client.host if request.client else "unknown"
+    key = (client_host, request.url.path if request.url.path.startswith("/lifeos/") else "shared")
     now = time.monotonic()
     with rate_lock:
         window = rate_windows[key]
@@ -455,6 +456,10 @@ def random_hadith(request: Request, _admin=Depends(require_admin)):
 from private_routes import router as private_router
 
 app.include_router(private_router)
+
+from lifeos_routes import build_router as build_lifeos_router
+
+app.include_router(build_lifeos_router(language_models, enforce_rate_limit, require_admin))
 
 if __name__ == "__main__":
     import uvicorn
