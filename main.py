@@ -188,7 +188,7 @@ def language_models():
     with model_lock:
         if not base_model:
             base_model = ChatGroq(
-                model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+                model=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
                 groq_api_key=key,
                 temperature=0.7,
                 timeout=20,
