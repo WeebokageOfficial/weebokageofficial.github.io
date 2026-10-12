@@ -459,7 +459,7 @@ app.include_router(private_router)
 
 from lifeos_routes import build_router as build_lifeos_router
 
-app.include_router(build_lifeos_router(language_models, enforce_rate_limit, require_admin))
+app.include_router(build_lifeos_router(language_models, enforce_rate_limit, require_admin, lambda credentials: decode_token(credentials)))
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,47 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="global-bootstrap.js?v=1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <meta name="robots" content="noindex, nofollow">
     <title>Islam | WEEBOKAGE</title>
-    <link rel="stylesheet" href="style.css?v=13.0">
-    <link rel="stylesheet" href="responsive.css?v=1.0">
+    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="responsive.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="site.js?v=1.0"></script>
-    <style>
-        .islam-body { background:#fdfcf0!important;color:#1a2f23!important;background-image:none!important; }
-        .islam-card { background:#fff!important;border:2px solid #d4af37!important;color:#1a2f23!important;padding:40px!important;box-shadow:0 10px 30px rgba(0,0,0,.05)!important; }
-        .arabic { font-family:"Amiri",serif;font-size:clamp(1.6rem,7vw,2.2rem);text-align:right;direction:rtl;color:#064e3b;line-height:1.8;overflow-wrap:anywhere; }
-        .hadith-badge { display:inline-block;background:#064e3b;color:#f5d66f;padding:6px 16px;border-radius:8px;font-weight:bold;margin-top:25px;font-size:.85rem;border:1px solid #d4af37; }
-        @media (max-width:600px) {
-            .islam-card { padding:22px!important; }
-            .islam-title { font-size:clamp(2rem,12vw,3rem)!important;overflow-wrap:anywhere; }
-        }
-    </style>
-</head>
-<body class="islam-body guarded">
-    <nav aria-label="Islam archive navigation" style="background:#064e3b;border-bottom:4px solid #d4af37;"><div class="links">
-        <a href="index.html" style="color:#fff;">Home</a>
-        <a href="islam.html" style="color:#fff;" aria-current="page">Islam</a>
-        <a href="downloads.html" style="color:#fff;">Admin</a>
-    </div></nav>
 
-    <main class="container">
-        <h1 class="islam-title" lang="ar" dir="rtl" style="text-align:center;color:#064e3b;font-family:Amiri;font-size:3rem;margin:40px 0;">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ</h1>
+<link rel="stylesheet" href="pages.css?v=1">
+<link rel="stylesheet" href="theme.css?v=1">
+<script src="chrome.js?v=1" defer></script>
+</head>
+<body class="islam-body guarded" data-page="islam">
+    <header class="cyber-header"><a class="cyber-brand" href="index.html" aria-label="Weebokage home"><span class="brand-mark">W<span>//</span>K</span><span>WEEBOKAGE<small>PERSONAL DIGITAL SECTOR</small></span></a><button type="button" class="menu-toggle" aria-expanded="false" aria-controls="cyber-navigation" aria-label="Open navigation"><span></span><span></span><span></span></button><nav id="cyber-navigation" class="cyber-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="lifeos.html">LifeOS</a><a href="anime.html">Anime Catalog</a><a href="transit.html">Transit / ÖPNV</a><a href="chat.html">AI Chatbot</a><details class="nav-more"><summary>Explore +</summary><div><a href="scanner.html">Dimension Scanner</a><a href="games.html">Arcade</a><a href="credits.html">Credits</a><a href="transit.html" class="admin-hide" id="nav-transit">Private feeds</a><a href="islam.html" class="admin-hide" id="nav-islam">Islam Archive</a><a href="login.html" id="admin-btn">Account ↗</a></div></details><button class="cyber-theme" type="button" aria-label="Switch between Miku and Teto themes" aria-pressed="false">◈ <span>MIKU</span></button></nav></header>
+
+    <main class="container"><header class="content-page-heading"><span class="page-module-id">08 / REFLECTION ARCHIVE</span><h1>Islam Archive</h1><p>A quiet space for knowledge, reflection and daily practice.</p></header>
+        <h1 class="islam-title islam-title" lang="ar" dir="rtl">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ</h1>
         <section class="card islam-card">
-            <h2 style="color:#064e3b!important;border-bottom:1px solid #d4af37;padding-bottom:15px;margin-bottom:20px;"><i class="fas fa-book" aria-hidden="true"></i> Sahih al-Bukhari</h2>
+            <h2 class="archive-divider-title"><i class="fas fa-book" aria-hidden="true"></i> Sahih al-Bukhari</h2>
             <div id="hadith-box" aria-live="polite">Loading authentic transmission…</div>
-            <button id="hadith-button" class="btn" style="background:#064e3b;color:#fff;margin-top:20px;">RANDOMIZE</button>
+            <button id="hadith-button" class="reflection-action btn">RANDOMIZE</button>
         </section>
         <section class="card islam-card">
-            <h2 style="color:#064e3b!important;border-bottom:1px solid #d4af37;padding-bottom:15px;margin-bottom:20px;"><i class="fas fa-clock" aria-hidden="true"></i> Mawaqit al-Salat</h2>
+            <h2 class="archive-divider-title"><i class="fas fa-clock" aria-hidden="true"></i> Mawaqit al-Salat</h2>
             <div id="prayer-list" aria-live="polite">Enable location access to view times…</div>
-            <button id="location-button" class="btn" style="background:#064e3b;color:#fff;margin-top:20px;">USE MY LOCATION</button>
+            <button id="location-button" class="reflection-action btn">USE MY LOCATION</button>
         </section>
     </main>
 
@@ -73,7 +64,7 @@
                 arabic.dir = "rtl";
                 arabic.textContent = hadith.arabic || "Arabic text unavailable.";
                 const english = document.createElement("p");
-                english.style.cssText = "margin-top:20px;line-height:1.7;font-style:italic;white-space:pre-wrap";
+                english.className = "hadith-translation";
                 english.textContent = hadith.english || "English text unavailable.";
                 const badge = document.createElement("div");
                 badge.className = "hadith-badge";
@@ -102,12 +93,12 @@
                     const timings = (await response.json()).data.timings;
                     const rows = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"].map((name) => {
                         const row = document.createElement("div");
-                        row.style.cssText = "display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #f0f0f0";
+                        row.className = "prayer-time-row";
                         const label = document.createElement("strong");
                         label.textContent = name;
                         const time = document.createElement("span");
                         time.textContent = timings[name];
-                        time.style.cssText = "color:#8a6c00;font-weight:bold";
+                        time.className = "prayer-time-value";
                         row.append(label, time);
                         return row;
                     });
@@ -123,5 +114,6 @@
         document.getElementById("hadith-button").addEventListener("click", fetchHadith);
         document.getElementById("location-button").addEventListener("click", loadPrayers);
     </script>
+<footer class="cyber-footer"><span><i aria-hidden="true"></i> SYSTEM ONLINE // WEEBOKAGE OS v3.9</span><span>MADE OF CODE, STORIES &amp; A LITTLE MIKU <a href="credits.html">CREDITS ↗</a></span></footer>
 </body>
 </html>

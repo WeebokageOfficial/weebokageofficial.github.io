@@ -185,3 +185,162 @@ Prayer times depend on the calculation method; match your local mosque as needed
 Export downloads `lifeos_backup.json`, containing all LifeOS state, including sound,
 prayer settings, notes, finance entries and progress (other website storage is not
 exported). Import validates before replacing progress and retains a rolling backup.
+
+## Global CyberDeck and command shell
+
+Every HTML entry point loads `global-bootstrap.js`. It opens the persistent
+`lifeos-shell.html` and keeps the requested page URL in the address bar. Internal
+navigation, Back/Forward and game-page reloads replace only the content iframe;
+the Spotify SDK device, terminal history and working directory stay alive.
+Opening a new tab or reloading the entire browser document creates a new SDK session.
+
+`global-ui.js` contains `SPOTIFY_CLIENT_ID`. Register the exact HTTPS
+`https://weebokage.com/lifeos.html` callback in the Spotify Developer Dashboard
+(and the matching `127.0.0.1` URL/port for local development). All pages use this
+single PKCE callback. Spotify credentials stay outside LifeOS JSON exports.
+
+The console opens with `^`, `~`, Escape outside text inputs, or **>_ KONSOLE**.
+Run `help` or `man quest`. It is a browser shell with a virtual filesystem:
+LifeOS records are readable in `~/quests`, `~/habits`, `~/lore` and `~/vault`;
+`~/tmp` stores writable scratch files locally. It does not execute host OS commands.
+
+```sh
+quest add --xp 75 --priority high "Write chapter 3"
+quest ls | grep -i chapter
+quest done 3
+cd ~/lore
+ls -lah
+cat *.md | head -n 20
+echo "$USER at $PWD" > ~/tmp/session.txt
+false || echo "exit status: $?"
+music volume 35
+music next
+```
+
+Tab completes commands, file paths and record IDs. History supports ↑/↓,
+Ctrl-R, `!!` and `!N`; Ctrl-L clears, Ctrl-C cancels input/effects, and Ctrl-D
+closes an empty prompt. Quoted strings, variables, globs, pipes, conditional
+chains and output redirection are supported. Commands share the same validated
+LifeOS save format and XP reward rules on every page.
+
+Run the shell regression tests with Node.js:
+
+```sh
+node --test tests/terminal.test.cjs
+```
+
+## Holographic 3D Dimension Scanner
+
+Open **Scanner** in the navigation or the LifeOS header (`scanner.html`). The
+scanner shares the persistent CyberDeck and console. Three.js and OrbitControls
+use the same pinned `0.180.0` CDN release through an import map; no build step is
+required. Geographic data is local (`assets/scanner/earth-land.json`), derived
+from Natural Earth's public-domain 1:110m land dataset.
+
+Drag to orbit, scroll or pinch to zoom, and select a buoy or directory entry.
+The camera flies toward the chosen signal while the globe rotates it into view.
+Filters control both the directory and raycasting; markers behind the sphere
+cannot be selected through it. Closing the details restores the overview and
+previous auto-rotation setting. Reduced-motion preferences disable default
+rotation, animation and camera transitions.
+
+`scanner-model.js` contains the six `scannerLocations` and the pure geographic
+projection; `scanner.js` wraps the projection in `latLonToVector3`. North is +Y,
+Greenwich is +Z and 90° east is +X. Weather and altitude readings are explicitly
+simulated; local time uses each real node's timezone. Selecting a fictional rift
+does not change your save. **Im Lore-Graph speichern & öffnen** creates its
+missing graph record, preserves existing notes and opens that exact record.
+
+The renderer caps pixel density, batches land/stars/contours and pauses when the
+page is hidden. Page disposal aborts fetches/listeners, stops animation and clock
+timers, disconnects resize observers and releases geometries, materials, textures,
+controls and the WebGL context. If CDN loading or WebGL fails, the signal directory
+and HUD remain usable. The service worker caches local scanner assets; the first
+3D load still requires access to the Three.js CDN.
+
+```sh
+node --test tests/scanner.test.cjs tests/terminal.test.cjs
+```
+
+## Shared LifeOS design system
+
+All eleven content pages use `theme.css` for colors, Inter / JetBrains Mono
+font stacks, surfaces, focus states, shared navigation, footer and responsive
+layouts. `style.css` supplies archive layout primitives, `responsive.css`
+accessibility helpers, and `pages.css` the extracted module layouts and reusable
+layout utilities. LifeOS and the scanner keep their feature-specific styles.
+The persistent shell also loads the same tokens for its music deck and console.
+
+`chrome.js` manages the accessible hamburger menu and Miku / Teto switch. Themes
+persist through the existing shared LifeOS state without changing the selected
+LifeOS module. The main navigation always links to Home, LifeOS, Anime Catalog,
+Transit and AI Chatbot; Explore contains the other pages and account controls.
+Protected pages still require their existing Firebase session.
+
+`chat.html` is the full Neural Synapse interface. Both this screen and existing
+chat widgets use the same `/chat` request, Firebase auth, backend selection and
+session ID. `chat.js` renders replies with the pinned local libraries described
+in `assets/vendor/README.md`, including sanitized Markdown and code highlighting.
+Duplicate sends are suppressed while a request is pending; Shift+Enter inserts a
+newline. Anime format filters and sorting apply to the currently returned API
+results, retaining the existing search and detail endpoints.
+
+UI regression checks use mocked Firebase, API responses and transit embeds (no
+live writes). Start a local static server and run:
+
+```sh
+python -m http.server 8765
+# In another terminal, with Playwright and Chromium installed:
+python tests/ui_smoke.py
+```
+
+Set `UI_BASE_URL` to test another local server and `UI_ARTIFACT_DIR` to choose
+where desktop/mobile screenshots are saved (default `/tmp/weebokage-ui`). The
+suite covers every content page at desktop/mobile sizes, compact 320px and 768px
+layouts, LifeOS tabs, theme persistence, navigation, guestbook submission, anime
+filters/detail/error states, protected transit views, login rejection and safe
+Markdown/code rendering. Scanner 3D behavior has its own model tests; this UI
+suite deliberately blocks its CDN to exercise the accessible fallback.
+
+## Cyber diagnostics, holograms and Breach Protocol
+
+`diagnostics.js` runs once in the persistent shell and displays the compact
+`#cyber-diagnostics-bar` on every route. It requests the configured backend’s
+`/health` every 30 seconds with a 10-second timeout. RTT below 150ms is green,
+150–500ms yellow, and above 500ms or request/health failures red. Battery and
+network values come from supported browser APIs; unsupported battery reporting
+uses the requested `PWR: AC // OK` label (its tooltip explains the fallback), and
+unknown network types are reported as unknown. Local and Tokyo clocks use Intl.
+Polling pauses while hidden; timers, listeners and requests clean up on unload.
+
+`holograms.js` enhances LifeOS companion quotes and Imam hadith cards with
+VanillaTilt 1.8.1 from cdnjs, pointer-driven holographic sheen and a Copy Quote
+button. Copies include the displayed source; successful copies play a short tone
+through the existing shell AudioContext. Reduced-motion preferences disable tilt
+and gyroscope animation. If the CDN fails, the card and clipboard still work.
+Dynamic cards destroy old tilt instances/listeners when their tab is re-rendered.
+
+Open **Breach Terminal** in Lifestyle or run `arcade` / `arcade breach` in the
+console on any page. `breach-model.js` contains the pure rules; `arcade.js` owns
+one native dialog. Boards always contain a valid top-row → column → row solution,
+cells cannot be reused, and the 30-second deadline is absolute. Successful rounds
+award 40 XP with the shared level-up formula. Up to three rounds per local day
+award XP; further rounds are practice. `breachRewards` stores round IDs and the
+last success timestamp in the same localStorage profile transaction as XP, so
+reloads, navigation and compatible backups preserve the limit. Web Locks serialize
+concurrent game reward claims where supported. Failed saves do not report XP
+as granted. New effects respect the saved mute preference.
+
+Shared visuals live in `cyber-modules.css`. The PWA caches the local modules;
+external tilt loading is optional. Run:
+
+```sh
+node --test tests/cyber-modules.test.cjs tests/scanner.test.cjs tests/terminal.test.cjs
+python tests/cyber_modules_ui.py
+```
+
+The Playwright suite uses the same local server/mock setup as `tests/ui_smoke.py`
+and downloads/caches the pinned tilt library in the system temporary directory.
+It covers telemetry thresholds/failures, battery events, real tilt initialization,
+clipboard contents, remount cleanup, modal/CLI launch, XP/level-up, daily limits,
+practice, timeout, invalid buffers and a complete touch round at 320px width.

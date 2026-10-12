@@ -1,46 +1,11 @@
+// Spotify configuration lives in global-ui.js.
 (() => {
   'use strict';
 
   // State management: one versioned document, local calendar dates, integer cents.
-  const STORAGE_KEY = 'weebokage.lifeos.v1';
-  const dateKey = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  const dayDistance = (a, b) => Math.round((Date.parse(`${a}T12:00:00Z`) - Date.parse(`${b}T12:00:00Z`)) / 86400000);
-  const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-  const titleForLevel = level => level >= 10 ? 'SYSTEM ARCHITECT' : level >= 6 ? 'NEURAL OPERATOR' : level >= 3 ? 'CYBER VOCALIST' : 'CYBER NOVICE';
-  const newHabit = (title, xp) => ({ id: uid(), title, xp, days: [], rewarded: [] });
-  const defaults = () => ({ version: 1, level: 1, xp: 0, activeTab: 'lifestyle', activityDays: [], habits: [newHabit('Hydrate 2.5L', 15), newHabit('Creative Writing', 30), newHabit('15-Min Walk', 20)], quests: [{ id: uid(), title: 'Start your first chapter', priority: 'high', xp: 50, done: false, rewarded: false }, { id: uid(), title: 'Clear your desk', priority: 'low', xp: 20, done: false, rewarded: false }], notes: [], transactions: [], prayerDays: {}, prayerTimes: {}, prayerSchedules: {}, prayerRewards: {}, prayerOverrides: {}, prayerPrefs: {city:'Cologne',country:'Germany',method:3,timezone:'Europe/Berlin',coordinates:null}, preferences:{muted:false}, questHistory:{}, questDay:dateKey() });
+  const {STORAGE_KEY,BACKUP_KEY,dateKey,dayDistance,uid,prayers,titleForLevel,newHabit,defaults,validateState,validateLoreGraph,currentStreak} = window.LifeOSCore;
   let storageIssue = '';
   let lastSaveSucceeded = true;
-  const BACKUP_KEY = `${STORAGE_KEY}.backup`;
-  const legacyCategories = { 'Charakterbogen':'Character Sheet', 'Kapitelnotiz':'Chapter Notes', 'Gehalt':'Salary', 'Wohnen':'Housing', 'Lebensmittel':'Groceries', 'Mobilität':'Transport', 'Freizeit':'Leisure', 'Sparen':'Savings', 'Sonstiges':'Other' };
-  function validateState(parsed) {
-    if (!parsed || parsed.version !== 1 || !Number.isInteger(parsed.level) || parsed.level < 1 || parsed.level > 100000 || !Number.isInteger(parsed.xp) || parsed.xp < 0 || parsed.xp >= 100 + (parsed.level-1)*50 || !['habits','quests','notes','transactions','activityDays'].every(key=>Array.isArray(parsed[key]) && parsed[key].length <= 10000)) throw new Error('Invalid backup');
-    const dated = values => Array.isArray(values) && values.every(value=>typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value));
-    const entry = value => value && typeof value.id === 'string' && typeof value.title === 'string' && value.title.length <= 200;
-    if (!dated(parsed.activityDays) || !parsed.habits.every(h=>entry(h) && dated(h.days) && dated(h.rewarded) && Number.isInteger(h.xp) && h.xp >= 1 && h.xp <= 500) || !parsed.quests.every(q=>entry(q) && Number.isInteger(q.xp) && q.xp >= 1 && q.xp <= 500 && typeof q.done === 'boolean' && typeof q.rewarded === 'boolean')) throw new Error('Invalid habits or quests');
-    if (!parsed.notes.every(n=>entry(n) && typeof n.content === 'string' && n.content.length <= 20000 && typeof n.category === 'string' && ['Draft','Final'].includes(n.status)) || !parsed.transactions.every(t=>entry(t) && Number.isSafeInteger(t.cents) && t.cents > 0 && ['income','expense'].includes(t.type) && typeof t.category === 'string' && dated([t.date]))) throw new Error('Invalid archive or budget');
-    for (const field of ['prayerDays','prayerTimes']) {
-      if (parsed[field] != null && (typeof parsed[field] !== 'object' || Array.isArray(parsed[field]))) throw new Error('Invalid prayer data');
-    }
-    if (!Object.values(parsed.prayerDays || {}).every(value=>Array.isArray(value) && value.every(name=>prayers.includes(name))) || !Object.values(parsed.prayerTimes || {}).every(value=>value && typeof value === 'object' && Object.entries(value).every(([name,time])=>prayers.includes(name) && typeof time === 'string' && (time === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(time))))) throw new Error('Invalid prayer entries');
-    if (parsed.preferences != null && (typeof parsed.preferences !== 'object' || typeof parsed.preferences.muted !== 'boolean')) throw new Error('Invalid sound preference');
-    if (parsed.questHistory != null && (typeof parsed.questHistory !== 'object' || Array.isArray(parsed.questHistory) || !Object.entries(parsed.questHistory).every(([day,count])=>dated([day]) && Number.isInteger(count) && count >= 0 && count <= 10000))) throw new Error('Invalid quest history');
-    for (const field of ['prayerRewards','prayerOverrides']) if (parsed[field] != null && (typeof parsed[field] !== 'object' || Array.isArray(parsed[field]) || !Object.entries(parsed[field]).every(([day,names])=>dated([day]) && Array.isArray(names) && names.every(name=>prayers.includes(name))))) throw new Error('Invalid prayer progress');
-    if (parsed.prayerSchedules != null && (typeof parsed.prayerSchedules !== 'object' || Array.isArray(parsed.prayerSchedules) || !Object.entries(parsed.prayerSchedules).every(([day,record])=>dated([day]) && record && typeof record.locationKey === 'string' && typeof record.timezone === 'string' && record.timings && prayers.every(name=>typeof record.timings[name] === 'string' && Number.isFinite(Date.parse(record.timings[name])))))) throw new Error('Invalid prayer schedule');
-    const restored = { ...defaults(), ...parsed };
-    restored.preferences={muted:false,...parsed.preferences};
-    restored.prayerPrefs={...defaults().prayerPrefs,...parsed.prayerPrefs};
-    const prefs=restored.prayerPrefs;
-    if (typeof prefs.city !== 'string' || prefs.city.length > 80 || typeof prefs.country !== 'string' || prefs.country.length > 80 || ![2,3,4,12,13].includes(prefs.method) || (prefs.coordinates && (!Number.isFinite(prefs.coordinates.latitude) || Math.abs(prefs.coordinates.latitude)>90 || !Number.isFinite(prefs.coordinates.longitude) || Math.abs(prefs.coordinates.longitude)>180))) throw new Error('Invalid prayer location');
-    new Intl.DateTimeFormat('en-GB',{timeZone:prefs.timezone}).format();
-    restored.prayerRewards=parsed.prayerRewards || JSON.parse(JSON.stringify(parsed.prayerDays || {}));
-    restored.prayerOverrides=parsed.prayerOverrides || Object.fromEntries(Object.entries(parsed.prayerTimes || {}).map(([day,times])=>[day,Object.keys(times).filter(name=>times[name])]));
-    if (parsed.questDay != null && !dated([parsed.questDay])) throw new Error('Invalid quest date');
-    restored.notes = parsed.notes.map(n=>({...n,category:legacyCategories[n.category] || n.category}));
-    restored.transactions = parsed.transactions.map(t=>({...t,category:legacyCategories[t.category] || t.category}));
-    return restored;
-  }
   const Store = {
     load() {
       for (const key of [STORAGE_KEY,BACKUP_KEY]) {
@@ -91,13 +56,6 @@
   const $ = selector => document.querySelector(selector);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const euro = cents => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(cents / 100);
-  function currentStreak(days) {
-    const unique = [...new Set(days)].sort().reverse();
-    if (!unique.length || dayDistance(dateKey(), unique[0]) > 1) return 0;
-    let count = 1;
-    for (let i = 1; i < unique.length && dayDistance(unique[i - 1], unique[i]) === 1; i++) count++;
-    return count;
-  }
   const personas = {
     lifestyle: { name: 'HATSUNE MIKU', system: '01 // SYSTEM IDOL', role: 'Your next small step matters.', alt: 'Miku holding a notebook and a mug', quotes: ['A small sync beats a perfect plan. Let’s take the next step! 🩵', 'Your habits set the rhythm. You write the melody.', 'A sip of water, a fresh idea, a step outside. Ready, Producer?'] },
     lore: { name: 'HATSUNE MIKU', system: '01 // STORY ARCHIVIST', role: 'Every great world starts with a small idea.', alt: 'Miku, your writing and lore companion', quotes: ['Your first draft only needs to be one thing: written. 🎵', 'Give your character a wish. Then give them a reason to hide it.', 'One scene can be the beginning of an entire universe.'] },
@@ -111,6 +69,8 @@
     { text: 'Whoever follows a path seeking knowledge, Allah makes a path to Paradise easier for them.', source: 'Sahih Muslim 2699a', url: 'https://sunnah.com/muslim:2699a' }
   ];
   if (!personas[state.activeTab]) state.activeTab = 'lifestyle';
+  const requestedTab = new URLSearchParams(location.search).get('tab');
+  if (Object.hasOwn(personas, requestedTab)) state.activeTab = requestedTab;
 
   // Audio is synthesised locally and only unlocked by a user interaction.
   const AudioEngine = {
@@ -176,7 +136,7 @@
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
       return { period:this.period(), streak:currentStreak(state.activityDays), missed_quests:state.questHistory[dateKey(yesterday)] || 0 };
     },
-    key(context = this.context()) { return `${dateKey()}:${context.period}:${context.streak}:${context.missed_quests}`; },
+    key(context = this.context()) { return `${dateKey()}:${context.period}:${context.streak}:${context.missed_quests}:${window.firebase?.auth?.().currentUser?.uid || (window.firebase?.auth?.().currentUser ? "signed-in" : "guest")}`; },
     local(tab, reroll = false) {
       const context = this.context(), key = this.key(context), previous = ui.quotes[tab];
       if (!reroll && previous?.key === key) return previous.text;
@@ -199,7 +159,7 @@
       if (context.streak >= 5) extra.push(`${context.streak} days in sync — that consistency deserves real praise!`);
       if (context.missed_quests > 0) extra.push(tab === 'teto' ? `${context.missed_quests} quests left open yesterday? Bold of you. Let’s rescue one, genius.` : `There were ${context.missed_quests} open quests yesterday. Pick one manageable next step.`);
       if (context.period === 'night' && context.missed_quests > 0) extra[extra.length-1] = tab === 'teto' ? 'Yesterday’s unfinished quests are not a reason to skip sleep, genius.' : 'Leave yesterday’s unfinished quests for after you rest.';
-      const text = [phrases[context.period][selection], flavour[tab][selection%flavour[tab].length], ...extra].join(' ');
+      const text = [(window.firebase?.auth?.().currentUser ? 'Master, ' : '') + phrases[context.period][selection], flavour[tab][selection%flavour[tab].length], ...extra].join(' ');
       ui.quotes[tab] = { text, live:false, key, selection };
       return text;
     },
@@ -307,6 +267,7 @@
       $('#install-app').hidden=window.matchMedia?.('(display-mode: standalone)').matches || false;
     },
     async install() {
+      if (window.parent.LifeOSShell?.hasInstallPrompt) { await window.parent.LifeOSShell.installApp(); return; }
       if (!this.prompt) {notify('Use your browser’s Install app option. On iPhone/iPad: Share → Add to Home Screen.');return;}
       const prompt=this.prompt;this.prompt=null;
       await prompt.prompt();await prompt.userChoice;
@@ -325,6 +286,90 @@
     }
   };
 
+  // Graph data is deliberately plain JSON: backup imports cannot inject vis options.
+  const LoreGraph = (() => {
+    const types = {dimension:['Dimension','#39C5BB'],character:['Charakter','#9d4edd'],faction:['Fraktion','#ff007f'],artifact:['Artefakt','#e0a96d'],event:['Event','#e0a96d']};
+    let network = null, selected = new URLSearchParams(location.search).get('node'), filter = 'all';
+    const animation = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : {duration:450,easingFunction:'easeInOutQuad'};
+    const visible = () => state.loreGraph.nodes.filter(n=>filter==='all' || n.type===filter);
+    function markup() {
+      return `<section class="card module-card lore-graph"><div class="section-heading"><div><h2>◈ Lore & Dimensions</h2><p>Your universe, connected.</p></div><button type="button" id="lore-add-node" class="small-button">+ Neuer Knoten</button></div><div class="toolbar"><label class="field">Knoten suchen<input id="lore-node-search" type="search" placeholder="Name eingeben …"></label><label class="field">Typ<select id="lore-type-filter"><option value="all">Alle Typen</option>${Object.entries(types).map(([key,[label]])=>`<option value="${key}" ${filter===key?'selected':''}>${label}</option>`).join('')}</select></label><button id="lore-fit" type="button" class="small-button">Übersicht</button></div><p id="lore-graph-status" class="hint" role="status"></p><div class="lore-graph-layout"><div><div id="lore-network-canvas" tabindex="0" aria-label="Interactive lore network"></div><div id="lore-node-list" class="lore-node-list" aria-label="Accessible node list"></div></div><aside id="lore-sidebar" aria-label="Node details" hidden></aside></div></section>`;
+    }
+    function data() {
+      const nodes = visible(); const ids = new Set(nodes.map(n=>n.id));
+      return {nodes:nodes.map(n=>({id:n.id,label:n.name,x:n.x,y:n.y,color:{background:'#101821',border:types[n.type][1],highlight:{background:'#1a2533',border:types[n.type][1]}},shadow:{enabled:true,color:types[n.type][1],size:10,x:0,y:0}})),edges:state.loreGraph.edges.filter(e=>ids.has(e.from)&&ids.has(e.to)).map(e=>({...e}))};
+    }
+    function refresh() {
+      network?.setData(data());
+      $('#lore-node-list').innerHTML = visible().map(n=>`<button type="button" class="small-button" data-lore-node="${escape(n.id)}">${escape(n.name)}</button>`).join('');
+      $('#lore-graph-status').textContent = state.loreGraph.nodes.length ? `${visible().length} / ${state.loreGraph.nodes.length} Knoten. Ziehen, zoomen oder einen Knoten auswählen.` : 'Dein Universum beginnt hier. Lege deinen ersten Knoten an.';
+      if (!window.vis?.Network) $('#lore-graph-status').textContent += ' Graph-Bibliothek nicht verfügbar; die Knotenliste bleibt bedienbar.';
+      if (selected && !visible().some(n=>n.id===selected)) { selected=null; $('#lore-sidebar').hidden=true; }
+    }
+    function focus(id) {
+      const node=state.loreGraph.nodes.find(n=>n.id===id); if (!node) return;
+      if (filter!=='all' && filter!==node.type) { filter='all'; $('#lore-type-filter').value='all'; refresh(); }
+      selected=id; network?.selectNodes([id]); network?.focus(id,{scale:1.15,animation:animation()}); sidebar(node);
+    }
+    function sidebar(n) {
+      const links=state.loreGraph.edges.filter(e=>e.from===n.id||e.to===n.id);
+      const panel=$('#lore-sidebar'); panel.hidden=false;
+      panel.innerHTML=`<div class="section-heading"><h3>${escape(n.name)}</h3><button type="button" id="lore-sidebar-close" class="icon-button" aria-label="Close details">×</button></div><span class="tag" style="color:${types[n.type][1]}">${types[n.type][0]}</span><p>${escape(n.status)}</p><p class="hint">Heimatdimension / Fraktion: ${escape(n.home || '—')}</p><h4>Fähigkeiten / Attribute</h4><div class="lore-attributes">${n.attributes.map(a=>`<span class="tag">${escape(a)}</span>`).join('')||'<span class="hint">Noch keine Attribute.</span>'}</div><h4>Verbindungen</h4><div class="lore-connections">${links.map(e=>{const other=state.loreGraph.nodes.find(node=>node.id===(e.from===n.id?e.to:e.from));return `<button type="button" class="small-button" data-lore-node="${escape(other.id)}">${e.from===n.id?'→':'←'} ${escape(e.label || 'verbunden')} · ${escape(other.name)}</button>`;}).join('')||'<p class="hint">Noch keine Verbindungen.</p>'}</div><label class="field">Notizen<textarea id="lore-node-notes" maxlength="20000" rows="7">${escape(n.notes)}</textarea></label><span id="lore-note-save" class="hint" role="status">Notizen werden automatisch gespeichert.</span>`;
+    }
+    function mount() {
+      const canvas=$('#lore-network-canvas'); if (!canvas) return;
+      if (window.vis?.Network) {
+        network=new vis.Network(canvas,data(),{nodes:{shape:'box',borderWidth:2,margin:14,font:{color:'#e6edf5',face:'monospace',size:14}},edges:{arrows:'to',color:'#59687c',font:{color:'#b9c8d9',strokeWidth:3,strokeColor:'#0a0e14'},smooth:{type:'continuous'}},physics:{solver:'forceAtlas2Based',forceAtlas2Based:{gravitationalConstant:-35,springLength:150,damping:.65},stabilization:{iterations:120}},interaction:{hover:true,keyboard:{enabled:true,bindToWindow:false}},layout:{randomSeed:39}});
+        network.on('click',event=>{if(event.nodes.length)focus(event.nodes[0]);});
+        network.on('dragEnd',() => {
+          const positions=network.getPositions();
+          state.loreGraph.nodes.forEach(n=>{if(positions[n.id])Object.assign(n,positions[n.id]);});
+          commit({activity:false,redraw:false});
+        });
+      }
+      if (selected && network) { const initial = selected; network.once('stabilized', () => { if (selected === initial) { network.selectNodes([initial]); network.focus(initial,{scale:1.15,animation:animation()}); } }); }
+      refresh(); if (selected) {const n=state.loreGraph.nodes.find(n=>n.id===selected);if(n && visible().some(v=>v.id===selected))sidebar(n);}
+    }
+    function destroy() { network?.destroy(); network=null; }
+    document.getElementById('vis-network-sdk').addEventListener('load',()=>{if(state.activeTab==='lore'){destroy();mount();}});
+    document.getElementById('vis-network-sdk').addEventListener('error',()=>{if(state.activeTab==='lore')refresh();});
+    document.addEventListener('click',event=>{
+      const button=event.target.closest('[data-lore-node]'); if (button) {focus(button.dataset.loreNode);return;}
+      if(event.target.closest('#lore-fit')) network?.fit({animation:animation()});
+      if(event.target.closest('#lore-sidebar-close')) {selected=null;$('#lore-sidebar').hidden=true;network?.unselectAll();}
+      if(event.target.closest('#lore-node-close')) $('#lore-node-dialog').close();
+      if(event.target.closest('#lore-add-node')) {
+        $('#lore-node-form').reset();
+        $('#lore-node-connections').innerHTML=`<legend>Verbindungen (vom neuen Knoten aus)</legend>${state.loreGraph.nodes.map(n=>`<label><input type="checkbox" name="connection" value="${escape(n.id)}"> ${escape(n.name)}</label>`).join('')||'<p class="hint">Weitere Knoten anlegen, um Verbindungen zu erstellen.</p>'}`;
+        $('#lore-node-dialog').showModal();
+      }
+    });
+    document.addEventListener('input',event=>{
+      if(event.target.id==='lore-node-search') {
+        const query=event.target.value.trim().toLocaleLowerCase();
+        if(!query)return;
+        const node=visible().find(n=>n.name.toLocaleLowerCase().includes(query));
+        if(node)focus(node.id); else $('#lore-graph-status').textContent='Kein passender Knoten im aktuellen Filter.';
+      }
+      if(event.target.id==='lore-node-notes') {
+        const node=state.loreGraph.nodes.find(n=>n.id===selected);if(!node)return;
+        node.notes=event.target.value;
+        $('#lore-note-save').textContent=commit({activity:false,redraw:false})?'Notizen gespeichert.':'Nicht gespeichert — bitte Backup exportieren.';
+      }
+    });
+    document.addEventListener('change',event=>{if(event.target.id==='lore-type-filter'){filter=event.target.value;refresh();network?.fit({animation:animation()});}});
+    $('#lore-node-form').addEventListener('submit',event=>{
+      event.preventDefault();const form=new FormData(event.target), id=uid();
+      const attributes=String(form.get('attributes')).split(',').map(s=>s.trim()).filter(Boolean);
+      if(!String(form.get('name')).trim() || attributes.length>50 || attributes.some(a=>a.length>100)){notify('Please check the name and attributes (max. 100 characters each).');return;}
+      const nodes=[...state.loreGraph.nodes,{id,name:String(form.get('name')).trim(),type:form.get('type'),status:form.get('status'),home:form.get('home'),attributes,notes:form.get('notes')}];
+      const edges=[...state.loreGraph.edges,...form.getAll('connection').map(to=>({id:uid(),from:id,to,label:String(form.get('relation')).trim()||'verbunden'}))];
+      try {state.loreGraph=validateLoreGraph({nodes,edges});} catch (_) {notify('Graph limit reached or invalid node.');return;}
+      selected=id;$('#lore-node-dialog').close();commit();focus(id);
+    });
+    return {markup,mount,destroy};
+  })();
+
   // Rendering: all user-controlled content is escaped before HTML insertion.
   let notificationTimer;
   function notify(message) { const el = $('#notification'); el.textContent = message; el.classList.add('visible'); clearTimeout(notificationTimer); notificationTimer = setTimeout(() => el.classList.remove('visible'), 5000); }
@@ -337,8 +382,9 @@
     $('#today-label').textContent = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' }).format(new Date()).toUpperCase();
     const persona = personas[state.activeTab];
     $('#dashboard').classList.toggle('teto-theme', state.activeTab === 'teto');
-    $('#persona-sprite').src = `assets/sprites/sprite_${state.activeTab === 'finance' ? 'finance' : state.activeTab}.png`;
-    $('#persona-sprite').alt = persona.alt;
+    const spriteTab = state.activeTab;
+    $('#persona-sprite').src = `assets/sprites/sprite_${spriteTab}.png`;
+    $('#persona-sprite').alt = personas[spriteTab].alt;
     $('#persona-name').textContent = persona.name;
     $('#persona-system').textContent = persona.system;
     $('#persona-role').textContent = persona.role;
@@ -360,11 +406,11 @@
     const today = dateKey();
     const habits = state.habits.map(h => `<div class="habit-row ${h.days.includes(today) ? 'completed' : ''}"><input class="row-check" type="checkbox" data-change="habit" data-id="${escape(h.id)}" ${h.days.includes(today) ? 'checked' : ''} aria-label="${escape(h.title)} completed today"><div class="row-copy"><div class="row-title">${escape(h.title)}</div><div class="row-meta">🔥 ${currentStreak(h.days)} day streak</div></div><span class="xp">+${h.xp} XP</span>${deleteButton('habit', h.id)}</div>`).join('');
     const quests = state.quests.filter(q => ui.filter === 'all' || (ui.filter === 'done' ? q.done : !q.done)).map(q => `<div class="quest-row ${q.done ? 'completed' : ''}"><input class="row-check" type="checkbox" data-change="quest" data-id="${escape(q.id)}" ${q.done ? 'checked' : ''} aria-label="${escape(q.title)} completed"><div class="row-copy"><div class="row-title">${escape(q.title)}</div><div class="row-meta"><span class="tag ${['high','medium','low'].includes(q.priority) ? q.priority : 'low'}">${escape(({high:'High',medium:'Medium',low:'Low'})[q.priority] || 'Low')}</span><span>${q.done ? 'Completed' : 'In progress'}</span></div></div><span class="xp">+${q.xp} XP</span>${deleteButton('quest', q.id)}</div>`).join('');
-    return `<div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>◈</span>Daily Habit Syncs</h2><p>Your rhythm for today</p></div><button class="small-button" data-action="new-habit">+ New Habit</button></div>${habits || empty('Time for a new rhythm. Add your first habit.')}<div class="card-bottom">${state.habits.filter(h => h.days.includes(today)).length} / ${state.habits.length} SYNCS COMPLETE // DAILY RESET AT MIDNIGHT</div></section><section class="card module-card"><div class="section-heading"><div><h2><span>⌁</span>Active Quests</h2><p>Small missions. Real progress.</p></div><button class="small-button" data-action="new-quest">+ New Quest</button></div><div class="filters" aria-label="Filter quests">${[['all','All'],['open','Open'],['done','Completed']].map(([value,label]) => `<button data-action="filter" data-value="${value}" class="${ui.filter === value ? 'active' : ''}" aria-pressed="${ui.filter === value}">${label}</button>`).join('')}</div>${quests || empty('No quests in this view.')}<div class="card-bottom">${state.quests.filter(q => !q.done).length} OPEN MISSIONS // YOUR PACE, YOUR PROGRESS</div></section></div>`;
+    return `<section class="breach-launch card"><div><span class="eyebrow">ARCADE // BREACH PROTOCOL</span><h3>Find the signal. Break the sequence.</h3><p class="hint">30 seconds · alternating rows & columns · +40 XP · 3 rewarded hacks per day</p></div><button class="small-button" type="button" data-action="open-breach">Breach Terminal ↗</button></section><div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>◈</span>Daily Habit Syncs</h2><p>Your rhythm for today</p></div><button class="small-button" data-action="new-habit">+ New Habit</button></div>${habits || empty('Time for a new rhythm. Add your first habit.')}<div class="card-bottom">${state.habits.filter(h => h.days.includes(today)).length} / ${state.habits.length} SYNCS COMPLETE // DAILY RESET AT MIDNIGHT</div></section><section class="card module-card"><div class="section-heading"><div><h2><span>⌁</span>Active Quests</h2><p>Small missions. Real progress.</p></div><button class="small-button" data-action="new-quest">+ New Quest</button></div><div class="filters" aria-label="Filter quests">${[['all','All'],['open','Open'],['done','Completed']].map(([value,label]) => `<button data-action="filter" data-value="${value}" class="${ui.filter === value ? 'active' : ''}" aria-pressed="${ui.filter === value}">${label}</button>`).join('')}</div>${quests || empty('No quests in this view.')}<div class="card-bottom">${state.quests.filter(q => !q.done).length} OPEN MISSIONS // YOUR PACE, YOUR PROGRESS</div></section></div>`;
   }
   function filteredNotes() { return state.notes.filter(n => (ui.loreCategory === 'all' || n.category === ui.loreCategory) && (ui.loreStatus === 'all' || n.status === ui.loreStatus) && `${n.title} ${n.content}`.toLocaleLowerCase().includes(ui.loreQuery.toLocaleLowerCase())); }
   function noteCards() { return filteredNotes().map(n => `<article class="note-card"><span class="tag">${escape(n.category)}</span> <span class="tag">${escape(n.status)}</span><h3>${escape(n.title)}</h3><div class="note-content">${escape(n.content)}</div>${n.source ? `<p class="note-source">${escape(n.source.filename)} · pp. ${escape(n.source.pages?.join(', ') || '')}</p>` : ''}<div class="note-footer"><button class="small-button" data-action="edit-note" data-id="${escape(n.id)}">Edit ↗</button>${deleteButton('note', n.id)}</div></article>`).join('') || empty('No matching archive entries yet. Capture your next idea.'); }
-  function renderLore() { return `<section class="card module-card"><div class="section-heading"><div><h2><span>▤</span>Lore Archive</h2><p>Characters, worlds and chapters in one place.</p></div><button class="small-button" data-action="new-note">+ New note</button></div><div class="pdf-import"><h3>Let Miku read your PDFs</h3><p class="hint">Upload text-based PDFs. Miku extracts and sorts characters, chapter notes and worldbuilding for your review.</p><p class="hint">PDF text is sent through your Render backend to Groq. Owner sign-in required. Up to 3 files, 5 MB and 40 pages each. Scans need OCR first.</p><div class="toolbar"><input id="lore-pdfs" type="file" accept="application/pdf,.pdf" multiple aria-label="Choose lore PDF files" ${ui.importBusy ? 'disabled' : ''}><button type="button" class="primary" data-action="import-pdfs" ${ui.importBusy ? 'disabled' : ''}>${ui.importBusy ? 'Miku is reading…' : 'Read & organise ↗'}</button></div><p class="import-status" id="pdf-status" role="status">${escape(ui.importStatus)}</p></div><div class="toolbar"><label class="field">Search archive<input id="lore-search" type="search" placeholder="Title or content …" value="${escape(ui.loreQuery)}"></label><label class="field">Category<select id="lore-category">${options([['all','All categories'],['Character Sheet','Character Sheet'],['Chapter Notes','Chapter Notes'],['Worldbuilding','Worldbuilding']],ui.loreCategory)}</select></label><label class="field">Status<select id="lore-status">${options([['all','All statuses'],['Draft','Draft'],['Final','Final']],ui.loreStatus)}</select></label></div><div id="note-list" class="note-grid">${noteCards()}</div></section>`; }
+  function renderLore() { return `<a class="lore-scanner-link small-button" href="scanner.html">◉ Holographic 3D Dimension Scanner öffnen ↗</a>${LoreGraph.markup()}<section class="card module-card"><div class="section-heading"><div><h2><span>▤</span>Lore Archive</h2><p>Characters, worlds and chapters in one place.</p></div><button class="small-button" data-action="new-note">+ New note</button></div><div class="pdf-import"><h3>Let Miku read your PDFs</h3><p class="hint">Upload text-based PDFs. Miku extracts and sorts characters, chapter notes and worldbuilding for your review.</p><p class="hint">PDF text is sent through your Render backend to Groq. Owner sign-in required. Up to 3 files, 5 MB and 40 pages each. Scans need OCR first.</p><div class="toolbar"><input id="lore-pdfs" type="file" accept="application/pdf,.pdf" multiple aria-label="Choose lore PDF files" ${ui.importBusy ? 'disabled' : ''}><button type="button" class="primary" data-action="import-pdfs" ${ui.importBusy ? 'disabled' : ''}>${ui.importBusy ? 'Miku is reading…' : 'Read & organise ↗'}</button></div><p class="import-status" id="pdf-status" role="status">${escape(ui.importStatus)}</p></div><div class="toolbar"><label class="field">Search archive<input id="lore-search" type="search" placeholder="Title or content …" value="${escape(ui.loreQuery)}"></label><label class="field">Category<select id="lore-category">${options([['all','All categories'],['Character Sheet','Character Sheet'],['Chapter Notes','Chapter Notes'],['Worldbuilding','Worldbuilding']],ui.loreCategory)}</select></label><label class="field">Status<select id="lore-status">${options([['all','All statuses'],['Draft','Draft'],['Final','Final']],ui.loreStatus)}</select></label></div><div id="note-list" class="note-grid">${noteCards()}</div></section>`; }
   const options = (items, selected) => items.map(([value,label]) => `<option value="${escape(value)}" ${value === selected ? 'selected' : ''}>${escape(label)}</option>`).join('');
   function renderFinance() {
     const entries = state.transactions.filter(t => t.date.startsWith(ui.month));
@@ -379,9 +425,9 @@
     const done = state.prayerDays[day] || [];
     const times = state.prayerTimes[day] || {};
     const hadith = hadiths[ui.hadith];
-    return `<div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>☾</span>Daily Prayer Sync</h2><p>The five daily prayers · ${escape(day)}</p></div><span class="tag">${done.length}/5</span></div><div class="prayer-settings"><form id="prayer-location-form"><div class="field-pair"><label class="field">City<input name="city" required maxlength="80" value="${escape(state.prayerPrefs.city)}"></label><label class="field">Country<input name="country" required maxlength="80" value="${escape(state.prayerPrefs.country)}"></label></div><label class="field">Calculation method<select name="method">${options([['3','Muslim World League'],['2','ISNA'],['4','Umm al-Qura'],['12','UOIF'],['13','Diyanet']],String(state.prayerPrefs.method))}</select></label><div class="prayer-actions"><button class="small-button" type="submit">Load times</button><button class="small-button" type="button" data-action="locate-prayers">◎ Use my location</button><button class="small-button" type="button" data-action="refresh-prayers">↻ Refresh</button></div></form><p id="prayer-status" class="hint">${escape(PrayerClock.status || (state.prayerPrefs.coordinates ? 'Your coordinates' : state.prayerPrefs.city+', '+state.prayerPrefs.country))}</p></div><div id="prayer-countdown" class="prayer-countdown" role="timer" aria-live="off">Next prayer: loading times…</div>${prayers.map(name=>`<div class="prayer-row"><input class="row-check" type="checkbox" data-change="prayer" data-name="${name}" ${done.includes(name)?'checked':''} aria-label="${name} prayed today"><span class="row-copy row-title">${name}<span class="prayer-xp">+20 XP</span></span><input type="time" data-change="prayer-time" data-name="${name}" value="${escape(times[name] || '')}" aria-label="Today’s time for ${name}"></div>`).join('')}<p class="hint">Aladhan times use the selected calculation method. Match your local mosque if needed; manual edits are preserved. Times shown in ${escape(state.prayerPrefs.timezone)}. Each prayer earns 20 XP once per day.</p></section><section class="card module-card"><div class="section-heading"><div><h2>Hadith of the Day</h2><p>A moment to reflect.</p></div><button class="icon-button" data-action="next-hadith" aria-label="Show another hadith">↻</button></div><p class="hadith-text">${hadith.text}</p><a class="source-link" href="${hadith.url}" target="_blank" rel="noopener noreferrer">${hadith.source} ↗</a><p class="hint">English paraphrase of an excerpt. Read the complete hadith in the linked source.</p><div class="card-bottom">INTENTION // CONSISTENCY // KNOWLEDGE</div></section></div>`;
+    return `<div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>☾</span>Daily Prayer Sync</h2><p>The five daily prayers · ${escape(day)}</p></div><span class="tag">${done.length}/5</span></div><div class="prayer-settings"><form id="prayer-location-form"><div class="field-pair"><label class="field">City<input name="city" required maxlength="80" value="${escape(state.prayerPrefs.city)}"></label><label class="field">Country<input name="country" required maxlength="80" value="${escape(state.prayerPrefs.country)}"></label></div><label class="field">Calculation method<select name="method">${options([['3','Muslim World League'],['2','ISNA'],['4','Umm al-Qura'],['12','UOIF'],['13','Diyanet']],String(state.prayerPrefs.method))}</select></label><div class="prayer-actions"><button class="small-button" type="submit">Load times</button><button class="small-button" type="button" data-action="locate-prayers">◎ Use my location</button><button class="small-button" type="button" data-action="refresh-prayers">↻ Refresh</button></div></form><p id="prayer-status" class="hint">${escape(PrayerClock.status || (state.prayerPrefs.coordinates ? 'Your coordinates' : state.prayerPrefs.city+', '+state.prayerPrefs.country))}</p></div><div id="prayer-countdown" class="prayer-countdown" role="timer" aria-live="off">Next prayer: loading times…</div>${prayers.map(name=>`<div class="prayer-row"><input class="row-check" type="checkbox" data-change="prayer" data-name="${name}" ${done.includes(name)?'checked':''} aria-label="${name} prayed today"><span class="row-copy row-title">${name}<span class="prayer-xp">+20 XP</span></span><input type="time" data-change="prayer-time" data-name="${name}" value="${escape(times[name] || '')}" aria-label="Today’s time for ${name}"></div>`).join('')}<p class="hint">Aladhan times use the selected calculation method. Match your local mosque if needed; manual edits are preserved. Times shown in ${escape(state.prayerPrefs.timezone)}. Each prayer earns 20 XP once per day.</p></section><section class="card module-card" data-holo-card="hadith"><div class="section-heading"><div><h2>Hadith of the Day</h2><p>A moment to reflect.</p></div><button class="icon-button" data-action="next-hadith" aria-label="Show another hadith">↻</button></div><p class="hadith-text">${hadith.text}</p><a class="source-link" href="${hadith.url}" target="_blank" rel="noopener noreferrer">${hadith.source} ↗</a><p class="hint">English paraphrase of an excerpt. Read the complete hadith in the linked source.</p><div class="card-bottom">INTENTION // CONSISTENCY // KNOWLEDGE</div></section></div>`;
   }
-  function render() { renderHeader(); $('#module-panel').innerHTML = ({ lifestyle:renderLifestyle, lore:renderLore, finance:renderFinance, teto:renderTools, imam:renderImam })[state.activeTab](); if (state.activeTab === 'teto') setConverterUnits(); if (state.activeTab === 'imam') PrayerClock.tick(); }
+  function render() { LoreGraph.destroy(); renderHeader(); $('#module-panel').innerHTML = ({ lifestyle:renderLifestyle, lore:renderLore, finance:renderFinance, teto:renderTools, imam:renderImam })[state.activeTab](); if (state.activeTab === 'lore') LoreGraph.mount(); if (state.activeTab === 'teto') setConverterUnits(); if (state.activeTab === 'imam') PrayerClock.tick(); }
   function commit({ activity = true, redraw = true } = {}) { if (activity) Store.touch(); const saved = Store.save(); if (redraw) render(); else renderHeader(); Dialogue.schedule(); return saved; }
   function setConverterUnits() { const names = Object.keys(units[$('#convert-kind').value]); $('#convert-from').innerHTML = options(names.map(v=>[v,v]),names[0]); $('#convert-to').innerHTML = options(names.map(v=>[v,v]),names[1]); convert(); }
   function convert() {
@@ -409,6 +455,7 @@
     if (event.target.closest('#refresh-quote')) { ui.quote++; Dialogue.local(state.activeTab,true); renderHeader(); void requestQuote(state.activeTab,true); return; }
     const button = event.target.closest('[data-action]'); if (!button) return;
     const {action,id,value} = button.dataset;
+    if (action === 'open-breach') { window.parent.LifeOSArcade?.open(); return; }
     if (action === 'toggle-sound') { AudioEngine.toggle(); return; }
     if (action === 'install-app') { void AppInstall.install(); return; }
     if (action === 'locate-prayers') { PrayerClock.locate(); return; }
@@ -560,6 +607,7 @@
           clearTimeout(timeout); resolve(user);
           for (const id of ['nav-transit','nav-islam']) { const link=$('#'+id); link.hidden=!user; }
           $('#lifeos-login').textContent=user ? 'Account' : 'Admin';
+          renderHeader(); Dialogue.schedule();
         },()=>{clearTimeout(timeout);resolve(null);});
       });
     } catch (_) { /* Local modules stay available without the online SDK. */ }
@@ -625,11 +673,14 @@
   function checkDay() { if (dateKey() !== currentDay) { currentDay = dateKey(); ui.hadith = Math.floor(Date.parse(`${currentDay}T12:00:00Z`) / 86400000)%3;Dialogue.snapshot();Store.save();render();if(state.activeTab==='imam')void PrayerClock.refresh();Dialogue.schedule(); } }
   setInterval(checkDay,30000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
+  window.addEventListener('lifeos-reward', event => { if (event.detail.titleChanged) showTitleUnlock(event.detail.title); });
+  window.addEventListener('lifeos-state-changed', () => { state = Store.load(); render(); });
   window.addEventListener('storage', event => { if (event.key === STORAGE_KEY) { state = Store.load(); if (!personas[state.activeTab]) state.activeTab='lifestyle'; render(); } });
   Dialogue.snapshot();
   render();
   sdkReady=loadAuthSDK();
   void AppInstall.register();
+  $('#terminal-toggle').addEventListener('click', () => { window.parent.dispatchEvent(new CustomEvent('lifeos-terminal-toggle')); });
   $('#enter-lifeos').addEventListener('click',finishSplash);
   document.addEventListener('keydown',event=>{if (event.key === 'Escape' && !$('#splash').hidden) finishSplash();});
   setTimeout(finishSplash,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 1300);

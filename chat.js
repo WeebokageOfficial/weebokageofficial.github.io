@@ -2,23 +2,41 @@
     "use strict";
 
     let currentUser = null;
+    let pending = false;
 
     function addMessage(text, ownMessage = false) {
         const box = document.getElementById("miku-msgs");
         if (!box) return null;
         const message = document.createElement("div");
-        message.textContent = text;
-        message.style.cssText = ownMessage
-            ? "background:var(--primary);color:#000;padding:12px;border-radius:12px;align-self:flex-end;max-width:85%;font-weight:bold;overflow-wrap:anywhere"
-            : "background:rgba(57,197,187,.1);padding:12px;border-radius:12px;border:1px solid var(--primary);align-self:flex-start;max-width:85%;white-space:pre-wrap;overflow-wrap:anywhere";
+        message.className = ownMessage ? "chat-message own" : "chat-message";
+        renderMessage(message, text, ownMessage);
         box.appendChild(message);
         box.scrollTop = box.scrollHeight;
         return message;
     }
 
+    function renderMessage(element, text, plain = false) {
+        element.classList.remove("is-pending");
+        if (!plain && window.marked && window.DOMPurify) {
+            element.innerHTML = DOMPurify.sanitize(marked.parse(String(text)), {
+                ALLOWED_TAGS: ["p","br","strong","em","del","h1","h2","h3","h4","ul","ol","li","blockquote","pre","code","a","hr","table","thead","tbody","tr","th","td"],
+                ALLOWED_ATTR: ["href","title","class"], ALLOW_DATA_ATTR: false
+            });
+            element.querySelectorAll("a").forEach(link => {
+                const url = Weebokage.safeUrl(link.getAttribute("href"));
+                if (!url) link.removeAttribute("href");
+                else { link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer"; }
+            });
+            element.querySelectorAll("pre code").forEach(code => window.hljs?.highlightElement(code));
+        } else element.textContent = String(text);
+        const box = document.getElementById("miku-msgs");
+        if (box) box.scrollTop = box.scrollHeight;
+    }
+
     function updateGreeting() {
         const box = document.getElementById("miku-msgs");
         if (!box) return;
+        if (box.querySelector(".own")) return;
         box.replaceChildren();
         const teto = (localStorage.getItem("theme") || "miku") === "teto";
         const greeting = teto
@@ -31,12 +49,18 @@
         const input = document.getElementById("miku-input");
         if (!input) return;
         const value = input.value.trim().slice(0, 1000);
-        if (!value) return;
+        if (!value || pending) return;
+        pending = true;
 
         addMessage(value, true);
         input.value = "";
         input.disabled = true;
-        const loading = addMessage("…");
+        const loading = addMessage("Establishing neural uplink…");
+        loading.classList.add("is-pending");
+        const send = document.getElementById("neural-send");
+        if (send) send.disabled = true;
+        const status = document.getElementById("chat-request-status");
+        if (status) status.textContent = "NEURAL UPLINK // WAITING FOR RESPONSE";
         try {
             const response = await Weebokage.apiFetch("/chat", {
                 method: "POST",
@@ -48,10 +72,14 @@
                 timeout: 65000
             });
             const data = await response.json();
-            loading.textContent = data.reply || "Neural sync failed.";
+            renderMessage(loading, data.reply || "Neural sync failed.");
         } catch (error) {
-            loading.textContent = error.name === "AbortError" ? "Request timed out." : error.message;
+            renderMessage(loading, error.name === "AbortError" ? "Request timed out." : error.message, true);
+            loading.classList.add("is-error");
         } finally {
+            pending = false;
+            if (send) send.disabled = false;
+            if (status) status.textContent = "ENTER TO SEND / SHIFT + ENTER FOR A NEW LINE";
             input.disabled = false;
             input.focus();
         }
@@ -63,7 +91,7 @@
         if (!windowElement) return;
         const open = windowElement.hidden;
         windowElement.hidden = !open;
-        windowElement.style.display = open ? "flex" : "none";
+
         button?.setAttribute("aria-expanded", String(open));
         if (open) document.getElementById("miku-input")?.focus();
     }
@@ -71,7 +99,7 @@
     function initialize() {
         const input = document.getElementById("miku-input");
         input?.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
+            if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
                 event.preventDefault();
                 askMiku();
             }

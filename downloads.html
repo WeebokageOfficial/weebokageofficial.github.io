@@ -1,29 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="global-bootstrap.js?v=1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin | WEEBOKAGE</title>
-    <link rel="stylesheet" href="style.css?v=13.0">
-    <link rel="stylesheet" href="responsive.css?v=1.0">
+    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="responsive.css?v=2">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="site.js?v=1.0"></script>
+<link rel="stylesheet" href="pages.css?v=1">
+<link rel="stylesheet" href="theme.css?v=1">
+<script src="chrome.js?v=1" defer></script>
 </head>
-<body class="guarded">
-    <nav aria-label="Admin navigation"><div class="links">
-        <a href="index.html">View Site</a>
-        <a href="islam.html">Islam</a>
-        <a href="transit.html">Transit</a>
-        <a href="#logout" id="logout-button" style="color:var(--primary)">Logoff</a>
-    </div></nav>
+<body class="guarded" data-page="downloads">
+    <header class="cyber-header"><a class="cyber-brand" href="index.html" aria-label="Weebokage home"><span class="brand-mark">W<span>//</span>K</span><span>WEEBOKAGE<small>PERSONAL DIGITAL SECTOR</small></span></a><button type="button" class="menu-toggle" aria-expanded="false" aria-controls="cyber-navigation" aria-label="Open navigation"><span></span><span></span><span></span></button><nav id="cyber-navigation" class="cyber-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="lifeos.html">LifeOS</a><a href="anime.html">Anime Catalog</a><a href="transit.html">Transit / ÖPNV</a><a href="chat.html">AI Chatbot</a><details class="nav-more"><summary>Explore +</summary><div><a href="scanner.html">Dimension Scanner</a><a href="games.html">Arcade</a><a href="credits.html">Credits</a><a href="transit.html" class="admin-hide" id="nav-transit">Private feeds</a><a href="islam.html" class="admin-hide" id="nav-islam">Islam Archive</a><a href="#logout" id="logout-button">Logoff ↗</a></div></details><button class="cyber-theme" type="button" aria-label="Switch between Miku and Teto themes" aria-pressed="false">◈ <span>MIKU</span></button></nav></header>
 
-    <main class="container">
-        <section class="card" style="border-top:5px solid var(--primary);">
-            <h1 style="color:var(--primary);font-size:1.6rem;margin-bottom:20px;">SECURE ARCHIVE</h1>
+    <main class="container"><header class="content-page-heading"><span class="page-module-id">09 / OWNER ACCESS</span><h1>Archive Control</h1><p>Your secure links and publishing workspace.</p></header>
+        <section class="archive-secure-card card">
+            <h1 class="archive-section-title">SECURE ARCHIVE</h1>
             <div id="archive-links" aria-live="polite"><p>Loading protected links…</p></div>
         </section>
 
@@ -35,10 +34,10 @@
             </div>
             <div class="input-group">
                 <label class="sr-only" for="pContent">Post content</label>
-                <textarea id="pContent" maxlength="10000" placeholder="Content…" style="min-height:180px;padding-left:15px!important;" required></textarea>
+                <textarea id="pContent" maxlength="10000" placeholder="Content…" required class="post-editor"></textarea>
             </div>
             <button type="submit" id="post-button" class="btn">DEPLOY</button>
-            <p id="post-status" role="status" style="margin-top:15px;"></p>
+            <p id="post-status" role="status" class="space-top-15"></p>
         </form>
     </main>
 
@@ -55,7 +54,7 @@
                 container.replaceChildren();
                 for (const entry of data.drives || []) {
                     const title = document.createElement("h2");
-                    title.style.cssText = "font-size:1rem;margin-top:20px";
+                    title.className = "archive-link-title";
                     title.textContent = entry.title;
                     const link = document.createElement("a");
                     link.href = Weebokage.safeUrl(entry.url);
@@ -110,5 +109,6 @@
             }
         });
     </script>
+<footer class="cyber-footer"><span><i aria-hidden="true"></i> SYSTEM ONLINE // WEEBOKAGE OS v3.9</span><span>MADE OF CODE, STORIES &amp; A LITTLE MIKU <a href="credits.html">CREDITS ↗</a></span></footer>
 </body>
 </html>

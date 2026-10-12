@@ -1,0 +1,47 @@
+(() => {
+  'use strict';
+  const header=document.querySelector('.cyber-header'), menu=document.querySelector('.menu-toggle'), nav=document.querySelector('.cyber-nav');
+  function setOpen(open){menu?.setAttribute('aria-expanded',String(open));menu?.setAttribute('aria-label',open?'Close navigation':'Open navigation');header?.classList.toggle('menu-open',open);}
+  menu?.addEventListener('click',()=>setOpen(menu.getAttribute('aria-expanded')!=='true'));
+  window.addEventListener('keydown',event=>{if(event.key==='Escape'&&header?.classList.contains('menu-open')){event.preventDefault();event.stopImmediatePropagation();setOpen(false);menu.focus();}},true);
+  document.addEventListener('click',event=>{if(header&&!header.contains(event.target))setOpen(false);});
+  nav?.addEventListener('click',event=>{if(event.target.closest('a'))setOpen(false);});
+  matchMedia('(min-width:1101px)').addEventListener('change',()=>setOpen(false));
+  const themeButton=document.querySelector('.cyber-theme');
+  function syncTheme(){const dashboard=document.getElementById('dashboard');const theme=dashboard?(dashboard.classList.contains('teto-theme')?'teto':'miku'):(localStorage.getItem('theme')==='teto'?'teto':'miku');
+    if(dashboard && document.documentElement.dataset.theme!==theme)window.Weebokage?.setTheme(theme);themeButton?.setAttribute('aria-pressed',String(theme==='teto'));const label=themeButton?.querySelector('span');if(label)label.textContent=theme.toUpperCase();
+    document.querySelectorAll('.portal-art img,.neural-sidebar>img,.splash-avatar').forEach(image=>{
+      const src=`assets/${theme==='teto'?'tetokage':'mikukage'}.webp`;
+      if(image.getAttribute('src')!==src)image.src=src;
+      image.alt=theme==='teto'?'Teto companion':'Miku companion';
+    });
+  }
+  themeButton?.addEventListener('click',()=>{
+    if(document.getElementById('dashboard')) {
+      window.Weebokage?.setTheme(document.getElementById('dashboard').classList.contains('teto-theme')?'teto':'miku');
+      window.parent.LifeOSShell?.syncTheme();
+      syncTheme(); return;
+    }
+    const next=localStorage.getItem('theme')==='teto'?'miku':'teto';
+    const core=window.LifeOSCore || window.parent.LifeOSCore;
+    core?.update(state=>{state.preferences.theme=next;},{activity:false});
+    window.Weebokage?.setTheme(next);
+    window.parent.LifeOSShell?.syncTheme();
+    syncTheme();
+  });
+  document.addEventListener('themechange',syncTheme);
+  window.addEventListener('storage',event=>{if(event.key==='theme'){document.documentElement.dataset.theme=localStorage.getItem('theme')||'miku';syncTheme();}});
+  const dashboard=document.getElementById('dashboard');
+  if(dashboard){
+    themeButton?.setAttribute('aria-label','Theme follows the active LifeOS tab');
+    themeButton?.setAttribute('title','Teto Tools → Teto · all other tabs → Miku');
+    const followCompanion=()=>{
+      const theme=dashboard.classList.contains('teto-theme')?'teto':'miku';
+      if(document.documentElement.dataset.theme!==theme)window.Weebokage?.setTheme(theme);
+      syncTheme();
+    };
+    new MutationObserver(followCompanion).observe(dashboard,{attributes:true,attributeFilter:['class']});
+    followCompanion();
+  }
+  syncTheme();
+})();

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <script src="global-bootstrap.js?v=1"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05070a">
+  <meta name="description" content="LifeOS Holographic 3D Dimension Scanner — erkunde globale Knotenpunkte und WCU-Dimensions-Rifts.">
+  <title>Dimension Scanner // LifeOS</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="scanner.css?v=1">
+  <script src="site.js?v=1.0" defer></script>
+  <script src="lifeos-core.js?v=1" defer></script>
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+  </script>
+  <script type="module" src="scanner.js?v=1"></script>
+<link rel="stylesheet" href="pages.css?v=1">
+<link rel="stylesheet" href="theme.css?v=1">
+<script src="chrome.js?v=1" defer></script>
+</head>
+<body data-page="scanner"><header class="cyber-header"><a class="cyber-brand" href="index.html" aria-label="Weebokage home"><span class="brand-mark">W<span>//</span>K</span><span>WEEBOKAGE<small>PERSONAL DIGITAL SECTOR</small></span></a><button type="button" class="menu-toggle" aria-expanded="false" aria-controls="cyber-navigation" aria-label="Open navigation"><span></span><span></span><span></span></button><nav id="cyber-navigation" class="cyber-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="lifeos.html">LifeOS</a><a href="anime.html">Anime Catalog</a><a href="transit.html">Transit / ÖPNV</a><a href="chat.html">AI Chatbot</a><details class="nav-more"><summary>Explore +</summary><div><a href="scanner.html" aria-current="page">Dimension Scanner</a><a href="games.html">Arcade</a><a href="credits.html">Credits</a><a href="transit.html" class="admin-hide" id="nav-transit">Private feeds</a><a href="islam.html" class="admin-hide" id="nav-islam">Islam Archive</a><a href="login.html" id="admin-btn">Account ↗</a></div></details><button class="cyber-theme" type="button" aria-label="Switch between Miku and Teto themes" aria-pressed="false">◈ <span>MIKU</span></button></nav></header>
+  <main id="scanner" class="scanner">
+    <header class="scanner-header">
+      <div><a class="scanner-back" href="lifeos.html">← LIFEOS / RECONNAISSANCE</a><h1>DIMENSION <span>SCANNER</span><sup>03</sup></h1><p>Holographic observation array <span aria-hidden="true">//</span> Earth & beyond</p></div>
+      <div class="scanner-link"><span class="scanner-led" aria-hidden="true"></span><span>ORBITAL LINK <strong id="scanner-system-status" role="status">INITIALIZING</strong></span><time id="scanner-utc" aria-label="UTC system time"></time></div>
+    </header>
+    <div class="scanner-toolbar">
+      <div class="scanner-filters" role="group" aria-label="Signale filtern"><button type="button" data-scanner-filter="all" aria-pressed="true">Alle anzeigen <span>06</span></button><button type="button" data-scanner-filter="real" aria-pressed="false">Reale Knoten <span>03</span></button><button type="button" data-scanner-filter="rift" aria-pressed="false">Dimensions-Rifts <span>03</span></button></div>
+      <div class="scanner-actions"><button id="scanner-auto" type="button" aria-pressed="true">↻ Auto-Rotate: an</button><button id="scanner-reset" type="button">⤾ Übersicht</button></div>
+    </div>
+    <div class="scanner-workspace">
+      <aside class="scanner-index" aria-label="Signalverzeichnis">
+        <div class="scanner-section-label"><span>01 / SIGNAL DIRECTORY</span><span id="scanner-count">06</span></div>
+        <div id="scanner-location-list"></div>
+        <div class="scanner-index-footer"><span class="scanner-led" aria-hidden="true"></span>3 REAL NODES <span class="rift-dot" aria-hidden="true"></span>3 DIMENSION RIFTS<p>Jeder Punkt ist eine Geschichte.<br>Wähle dein nächstes Signal.</p></div>
+      </aside>
+      <section id="scanner-stage" class="scanner-stage" aria-label="Interaktiver holografischer Globus">
+        <div id="scanner-canvas-host"></div>
+        <div class="scanner-stage-heading"><span>SECTOR MAP / TERRA</span><span id="scanner-view-status">ACQUIRING SIGNAL…</span></div>
+        <div id="scanner-tooltip" class="scanner-tooltip" role="tooltip" hidden></div>
+        <div id="scanner-loading" class="scanner-loading" role="status"><div class="scanner-loader" aria-hidden="true"></div><strong>Kalibriere Hologramm …</strong><span>Initialisiere die Orbitalsensoren.</span></div>
+        <div class="scanner-crosshair" aria-hidden="true"></div>
+        <div class="scanner-stage-footer"><span><i class="scanner-led" aria-hidden="true"></i>LIVE PROJECTION</span><span>DRAG TO ORBIT / SCROLL TO ZOOM</span></div>
+      </section>
+      <aside id="scanner-hud" class="scanner-hud" aria-label="Signalinformationen" aria-hidden="true" inert>
+        <div class="scanner-hud-heading"><span>02 / SIGNAL DECODE</span><button id="scanner-close" type="button" aria-label="Signaldetails schließen">×</button></div>
+        <div id="scanner-hud-body"></div>
+      </aside>
+    </div>
+
+  <p id="scanner-announcement" class="scanner-announcement" role="status" aria-live="polite">Wähle einen Marker oder ein Signal im Verzeichnis.</p></main>
+  <noscript>Der interaktive Scanner benötigt JavaScript. <a href="lifeos.html">Zurück zu LifeOS</a>.</noscript>
+<footer class="cyber-footer"><span><i aria-hidden="true"></i> SYSTEM ONLINE // WEEBOKAGE OS v3.9</span><span>MADE OF CODE, STORIES &amp; A LITTLE MIKU <a href="credits.html">CREDITS ↗</a></span></footer>
+</body>
+</html>

@@ -63,6 +63,23 @@ class LifeOSApiTests(unittest.TestCase):
         for invalid in [{'period': 'noon'}, {'streak': -1}, {'missed_quests': 'oops'}]:
             self.assertEqual(self.client.post('/lifeos/quote', json={'tab': 'teto', **invalid}).status_code, 422)
 
+    def test_greeting_master_requires_verified_sign_in(self):
+        self.model.invoke.return_value = Mock(content='Welcome aboard.')
+        for identity, expected in [(None, 'Never call a guest Master'), ({'uid': 'visitor'}, 'signed-in reader as Master')]:
+            with patch.object(main, 'decode_token', return_value=identity) as verify:
+                result = self.client.post('/lifeos/quote', json={'tab': 'teto', 'surface': 'portal'}, headers={'Authorization': 'Bearer test-only'})
+            self.assertEqual(result.status_code, 200)
+            verify.assert_called_once()
+            prompt = self.model.invoke.call_args.args[0][0].content
+            self.assertIn(expected, prompt)
+            self.assertIn('Kasane Teto', prompt)
+            self.assertIn('portal', prompt)
+        self.client.post('/lifeos/quote', json={'tab': 'lifestyle', 'surface': 'chat'})
+        prompt = self.model.invoke.call_args.args[0][0].content
+        self.assertIn('Never call a guest Master', prompt)
+        self.assertIn('Hatsune Miku', prompt)
+        self.assertEqual(self.client.post('/lifeos/quote', json={'tab': 'teto', 'signed_in': True}).status_code, 422)
+
     def test_quote_provider_failure_does_not_leak_payload(self):
         self.model.invoke.side_effect = RuntimeError('private provider details')
         response = self.client.post('/lifeos/quote', json={'tab': 'lore'})
