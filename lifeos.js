@@ -390,8 +390,11 @@
     $('#persona-role').textContent = persona.role;
     const contextKey=Dialogue.key();
     const quote=ui.quotes[state.activeTab];
-    $('#persona-quote').textContent = quote?.key === contextKey ? quote.text : Dialogue.local(state.activeTab);
-    $('#quote-source').textContent = ui.quotePending[state.activeTab] === contextKey ? 'COMPANION IS THINKING…' : ui.quotes[state.activeTab]?.live ? 'LIVE COMPANION' : 'LOCAL COMPANION';
+    const hasQuote = quote?.key === contextKey;
+    const loading = ui.quotePending[state.activeTab] === contextKey || (!hasQuote && navigator.onLine);
+    $('#persona-quote').textContent = hasQuote ? quote.text : navigator.onLine ? 'Connecting…' : Dialogue.local(state.activeTab);
+    $('#persona-quote').closest('.quote-bubble').setAttribute('aria-busy', String(loading));
+    $('#quote-source').textContent = loading ? 'COMPANION IS THINKING…' : ui.quotes[state.activeTab]?.live ? 'LIVE COMPANION' : 'LOCAL COMPANION';
     $('#refresh-quote').disabled = ui.quotePending[state.activeTab] === contextKey;
     $('#sound-toggle').textContent=state.preferences.muted ? '🔇' : '🔊';
     $('#sound-toggle').setAttribute('aria-label',state.preferences.muted ? 'Unmute sounds' : 'Mute sounds');
@@ -452,7 +455,7 @@
   document.addEventListener('click', event => {
     const tab = event.target.closest('[data-tab]');
     if (tab) { const previousTheme = state.activeTab === 'teto' ? 'teto' : 'miku'; state.activeTab = tab.dataset.tab; const nextTheme = state.activeTab === 'teto' ? 'teto' : 'miku'; ui.quote = 0; commit({activity:false}); if (previousTheme !== nextTheme) window.Weebokage?.setTheme(nextTheme); void requestQuote(state.activeTab); if(state.activeTab==='imam')void PrayerClock.refresh(); return; }
-    if (event.target.closest('#refresh-quote')) { ui.quote++; Dialogue.local(state.activeTab,true); renderHeader(); void requestQuote(state.activeTab,true); return; }
+    if (event.target.closest('#refresh-quote')) { ui.quote++; void requestQuote(state.activeTab,true); return; }
     const button = event.target.closest('[data-action]'); if (!button) return;
     const {action,id,value} = button.dataset;
     if (action === 'open-breach') { window.parent.LifeOSArcade?.open(); return; }
@@ -581,7 +584,7 @@
   async function requestQuote(tab,manual=false) {
     const context=Dialogue.context(),key=Dialogue.key(context);
     if (ui.quotePending[tab] === key || (!manual && ui.quotes[tab]?.live && ui.quotes[tab]?.key === key)) return;
-    const previous=ui.quotes[tab]?.text || Dialogue.local(tab);
+    const previous=ui.quotes[tab]?.text || '';
     if (!navigator.onLine) {Dialogue.local(tab);renderHeader();return;}
     ui.quotePending[tab]=key;renderHeader();
     try {
@@ -592,7 +595,7 @@
       if (Dialogue.key() === key) ui.quotes[tab]={text:data.quote,live:true,key};
     } catch (error) {
       if (Dialogue.key() === key) Dialogue.local(tab);
-      if (manual) notify(`Using a local companion line. ${error.name === 'AbortError' ? 'AI request timed out.' : error.message}`);
+      if (manual) notify(`Companion connection unavailable. ${error.name === 'AbortError' ? 'AI request timed out.' : error.message}`);
     } finally { if(ui.quotePending[tab]===key)delete ui.quotePending[tab];if(state.activeTab===tab)renderHeader(); }
   }
   async function callTetoAI(systemPrompt, userText, {tool, onStatus=()=>{}} = {}) {

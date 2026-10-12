@@ -15,7 +15,7 @@
     <script src="site.js?v=1.1"></script>
 
 <link rel="stylesheet" href="pages.css?v=1">
-<link rel="stylesheet" href="theme.css?v=1">
+<link rel="stylesheet" href="theme.css?v=2">
 <script src="chrome.js?v=4" defer></script>
 <link rel="stylesheet" href="theme-splash.css?v=8">
 <script src="theme.js?v=2" defer></script>
@@ -40,24 +40,10 @@
         <section class="transit-grid" id="transit-grid" aria-label="Transit departures"><p class="status-message">Loading protected departures…</p></section>
     </main>
 
-    <aside id="miku-chat-container" aria-label="AI assistant">
-        <div id="miku-window" hidden role="dialog" aria-labelledby="ai-title">
-            <div><span id="ai-title">MIKU SYSTEM 01</span><button class="icon-button" onclick="toggleMiku()" aria-label="Close chat">&times;</button></div>
-            <div id="miku-msgs" aria-live="polite"></div>
-            <div><label class="sr-only" for="miku-input">Chat message</label><input type="text" id="miku-input" maxlength="1000" placeholder="Ask Miku/Teto…"><button onclick="askMiku()" class="btn" aria-label="Send message"><i class="fas fa-paper-plane" aria-hidden="true"></i></button></div>
-        </div>
-        <button id="miku-btn" class="icon-button" onclick="toggleMiku()" aria-label="Open AI chat" aria-expanded="false"></button>
-    </aside>
-
-    <script src="assets/vendor/marked.umd.js"></script>
-<script src="assets/vendor/purify.min.js"></script>
-<script src="assets/vendor/highlight.min.js"></script>
-<script src="chat.js?v=2"></script>
     <script>
         "use strict";
         Weebokage.initFirebase();
         Weebokage.setTheme(localStorage.getItem("theme") || "miku", { silent: true });
-        WeebokageChat.initialize();
         async function loadTransit() {
             const grid = document.getElementById("transit-grid");
             try {
@@ -106,7 +92,6 @@
                 }
                 document.body.classList.remove("guarded");
                 loadTransit();
-                WeebokageChat.setUser(user);
             }
         });
 

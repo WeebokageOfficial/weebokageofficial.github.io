@@ -1,7 +1,7 @@
 'use strict';
 
 // Only LifeOS shell assets are cached. Other pages, API calls and uploads pass through.
-const CACHE = 'lifeos-shell-v12';
+const CACHE = 'lifeos-shell-v13';
 const ASSETS = [
   './theme.js', './theme-splash.js', './theme-splash.css',
   './assets/miku_victory.png', './assets/teto_victory.png',

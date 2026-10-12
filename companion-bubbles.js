@@ -25,11 +25,15 @@
     line.textContent = lines[choice];
     source.textContent = `${theme().toUpperCase()} // LOCAL`;
   }
-  async function greet() {
-    const current = ++version, selected = theme();
-    fallback();
+  function showLoading() {
+    line.textContent = 'Connecting…';
+    source.textContent = `${theme().toUpperCase()} // CONNECTING`;
     button.disabled = true;
     bubble.setAttribute('aria-busy', 'true');
+  }
+  async function greet() {
+    const current = ++version, selected = theme();
+    showLoading();
     try {
       const response = await Weebokage.apiFetch('/lifeos/quote', {
         method: 'POST', timeout: 15000,
@@ -40,7 +44,7 @@
       if (typeof data.quote !== 'string' || !data.quote.trim() || data.quote.length > 500) throw new Error('Invalid greeting');
       line.textContent = previous = data.quote.trim();
       source.textContent = `${selected.toUpperCase()} // GROQ`;
-    } catch (_) { /* The personality-aware local greeting stays visible when offline. */ }
+    } catch (_) { if (current === version) fallback(); }
     finally {
       if (current === version) { button.disabled = false; bubble.removeAttribute('aria-busy'); }
     }
@@ -48,7 +52,7 @@
   function schedule() {
     ++version; // Immediately invalidate responses belonging to a previous theme or account.
     clearTimeout(scheduled);
-    fallback();
+    showLoading();
     scheduled = setTimeout(greet, 250);
   }
   button.addEventListener('click', schedule);
