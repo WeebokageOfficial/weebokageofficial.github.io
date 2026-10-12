@@ -16,9 +16,38 @@
     <script src="site.js?v=1.0"></script>
 <link rel="stylesheet" href="pages.css?v=1">
 <link rel="stylesheet" href="theme.css?v=1">
+<link rel="stylesheet" href="theme-splash.css?v=6">
+<script src="theme-splash.js?v=4" defer></script>
 <script src="chrome.js?v=1" defer></script><script src="companion-bubbles.js?v=1" defer></script>
 </head>
 <body data-page="index">
+    <div id="theme-splash-overlay" role="dialog" aria-modal="true" aria-label="Choose your theme" hidden>
+        <button type="button" class="splash-split miku-side" data-splash-theme="miku" aria-label="INITIALIZE MIKU">
+            <span class="splash-badge">PROTOCOL // 01</span>
+            <img class="splash-character" src="assets/miku_splash_screen.png" alt="" decoding="async">
+            <span class="splash-title">HATSUNE MIKU</span>
+            <span class="splash-subtitle">CYBER TEAL // FOCUS MODE</span>
+            <span class="splash-cta">INITIALIZE MIKU</span>
+        </button>
+        <div class="splash-divider" aria-hidden="true"><span>VS</span></div>
+        <button type="button" class="splash-split teto-side" data-splash-theme="teto" aria-label="INITIALIZE TETO">
+            <span class="splash-badge">PROTOCOL // 02</span>
+            <img class="splash-character" src="assets/teto_splash_screen.png" alt="" decoding="async">
+            <span class="splash-title">KASANE TETO</span>
+            <span class="splash-subtitle">CHERRY RED // OVERCLOCK MODE</span>
+            <span class="splash-cta">INITIALIZE TETO</span>
+        </button>
+        <section id="splash-victory-stage" aria-label="Character initialized" hidden>
+            <div class="victory-content">
+                <img class="victory-sprite" data-victory-theme="miku" src="assets/miku_victory.png" alt="Miku celebrating your selection" hidden>
+                <img class="victory-sprite" data-victory-theme="teto" src="assets/teto_victory.png" alt="Teto celebrating your selection" hidden>
+                <div class="victory-dialog" role="status" aria-live="polite" aria-atomic="true">
+                    <span class="victory-speaker"></span>
+                    <p class="victory-line"></p>
+                </div>
+            </div>
+        </section>
+    </div>
 
 
     <header class="cyber-header"><a class="cyber-brand" href="index.html" aria-label="Weebokage home"><span class="brand-mark">W<span>//</span>K</span><span>WEEBOKAGE<small>PERSONAL DIGITAL SECTOR</small></span></a><button type="button" class="menu-toggle" aria-expanded="false" aria-controls="cyber-navigation" aria-label="Open navigation"><span></span><span></span><span></span></button><nav id="cyber-navigation" class="cyber-nav" aria-label="Main navigation"><a href="index.html" aria-current="page">Home</a><a href="lifeos.html">LifeOS</a><a href="anime.html">Anime Catalog</a><a href="transit.html">Transit / ÖPNV</a><a href="chat.html">AI Chatbot</a><details class="nav-more"><summary>Explore +</summary><div><a href="scanner.html">Dimension Scanner</a><a href="vocadb.html">VocaDB Stream</a><a href="pokemon.html">Cyber-Dex</a><a href="games.html">Arcade</a><a href="credits.html">Credits</a><a href="transit.html" class="admin-hide" id="nav-transit">Private feeds</a><a href="islam.html" class="admin-hide" id="nav-islam">Islam Archive</a><a href="login.html" id="admin-btn">Account ↗</a></div></details><button class="cyber-theme" type="button" aria-label="Switch between Miku and Teto themes" aria-pressed="false">◈ <span>MIKU</span></button></nav></header>
