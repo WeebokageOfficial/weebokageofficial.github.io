@@ -1,9 +1,9 @@
 'use strict';
 
 // Only LifeOS shell assets are cached. Other pages, API calls and uploads pass through.
-const CACHE = 'lifeos-shell-v6';
+const CACHE = 'lifeos-shell-v9';
 const ASSETS = [
-  './companion-bubbles.js', './assets/tetokage.webp', './diagnostics.js', './holograms.js', './breach-model.js', './arcade.js', './cyber-modules.css', './noscript.css', './theme.css', './pages.css', './style.css', './responsive.css', './chrome.js', './chat.html', './chat.js', './neural.js',
+  './teto-tools.js', './vocadb.html', './pokemon.html', './data-streams.js', './cyberdex.js', './streams-ui.js', './data-streams.css', './companion-bubbles.js', './assets/tetokage.webp', './diagnostics.js', './holograms.js', './breach-model.js', './arcade.js', './cyber-modules.css', './noscript.css', './theme.css', './pages.css', './style.css', './responsive.css', './chrome.js', './chat.html', './chat.js', './neural.js',
   './assets/vendor/marked.umd.js', './assets/vendor/purify.min.js', './assets/vendor/highlight.min.js',
   './lifeos-shell.html', './lifeos-shell.js', './global-bootstrap.js', './global-ui.js', './global-ui.css', './terminal.js', './lifeos-core.js',
   './scanner.html', './scanner.css', './scanner.js', './scanner-model.js', './assets/scanner/earth-land.json',

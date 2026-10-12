@@ -266,8 +266,11 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
       audioContext ||= new Audio();if(audioContext.state==='suspended')await audioContext.resume();
       const at=audioContext.currentTime+.005,osc=audioContext.createOscillator(),gain=audioContext.createGain();
       const frequency={click:540,copy:980,success:1320,failure:140}[kind]||540;
-      osc.type=kind==='failure'?'sawtooth':'sine';osc.frequency.setValueAtTime(frequency,at);osc.frequency.exponentialRampToValueAtTime(kind==='failure'?65:frequency*1.5,at+.075);
-      gain.gain.setValueAtTime(.045,at);gain.gain.exponentialRampToValueAtTime(.0001,at+.12);osc.connect(gain);gain.connect(audioContext.destination);osc.start(at);osc.stop(at+.13);osc.onended=()=>{osc.disconnect();gain.disconnect();};
+      const fanfare=kind==='encounter', duration=fanfare ? .46 : .12;
+      osc.type=fanfare?'square':kind==='failure'?'sawtooth':'sine';osc.frequency.setValueAtTime(fanfare?523.25:frequency,at);
+      if(fanfare)[659.25,783.99,1046.5].forEach((note,i)=>osc.frequency.setValueAtTime(note,at+(i+1)*.1));
+      else osc.frequency.exponentialRampToValueAtTime(kind==='failure'?65:frequency*1.5,at+.075);
+      gain.gain.setValueAtTime(.045,at);gain.gain.exponentialRampToValueAtTime(.0001,at+duration);osc.connect(gain);gain.connect(audioContext.destination);osc.start(at);osc.stop(at+duration+.01);osc.onended=()=>{osc.disconnect();gain.disconnect();};
     } catch(_) { /* Unsupported audio never blocks a copy or a move. */ }
   }
   window.LifeOSAudio={blip,reward};

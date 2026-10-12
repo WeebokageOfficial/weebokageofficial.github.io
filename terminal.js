@@ -43,6 +43,8 @@
     stats:['stats | status', 'Level, XP progress, title and habit streaks. Example: stats | head -n 5'],
     theme:['theme [miku|teto|auto]', 'Set the site-wide accent, or follow the page theme with auto.'],
     music:['music status|connect|play|pause|toggle|next|prev\nmusic volume [0..100]\nmusic shuffle [on|off]', 'Control the persistent Spotify CyberDeck from any page. Spotify Premium and an authorized session are required.'],
+    vocaloid:['vocaloid random\nvocaloid find QUERY', 'Public VocaDB stream. Random recommendation or the top three search results. Example: vocaloid find \"Hatsune Miku\"'],
+    dex:['dex NAME_OR_ID\ndex list', 'Public PokéAPI lookup and your locally caught Gen 1–2 collection. Example: dex pikachu'],
     arcade:['arcade [breach]', 'Open Breach Protocol. Match three codes within 30 seconds, alternating column and row. +40 XP, up to three rewarded hacks per local day.'],
     matrix:['matrix', 'Five seconds of code rain; Ctrl-C stops the animation.'],
     miku:['miku', 'Miku ASCII art and motivation.'],teto:['teto', 'Initialize baguette protocol.'],
@@ -254,6 +256,10 @@
         if(!args.length)return result((Core.read().preferences.theme||'auto')+'\n');if(args.length!==1||!['miku','teto','auto'].includes(args[0]))fail('theme: expected miku, teto or auto',2);
         Core.update(s=>{if(args[0]==='auto')delete s.preferences.theme;else s.preferences.theme=args[0];},{activity:false});if(args[0]!=='auto')window.Weebokage?.setTheme(args[0]);window.LifeOSShell?.syncTheme();return result(`theme: ${args[0]}\n`);
       }
+      if(name==='vocaloid'||name==='dex'){
+        if(!window.LifeOSDataStreams)fail('ERROR: Node unreachable — data module unavailable');
+        return result(await window.LifeOSDataStreams.command(name,args));
+      }
       if(name==='quest'||name==='habit'){
         const sub=args.shift(),collection=name==='quest'?'quests':'habits';
         if(sub==='ls'){
@@ -317,6 +323,8 @@
       const match=input.match(/(?:^|[\s|;&])([^\s|;&]*)$/);if(!match)return [];
       const word=match[1],before=input.slice(0,input.length-word.length);
       if(!before.trim()||/[|;&]\s*$/.test(before))return [...new Set([...Object.keys(manual),'status',...Object.keys(this.aliases)])].filter(c=>c.startsWith(word)).sort().map(c=>before+c+' ');
+      if(/(?:^|[|;&]\s*)vocaloid\s+[^\s]*$/.test(input))return ['random','find'].filter(value=>value.startsWith(word)).map(value=>before+value+' ');
+      if(/(?:^|[|;&]\s*)dex\s+[^\s]*$/.test(input))return ['list',...(window.LifeOSDataStreams?.caught()||[]).map(p=>p.name)].filter(value=>value.startsWith(word)).map(value=>before+value+' ');
       if(/\b(?:quest done|quest show|habit check)\s+[^\s]*$/.test(input)){const items=Core.read()[input.includes('habit check')?'habits':'quests'];return items.filter(item=>item.id.startsWith(word)).map(item=>before+item.id+' ');}
       const slash=word.lastIndexOf('/'),prefix=slash<0?'':word.slice(0,slash+1),name=word.slice(slash+1),directory=this.path(prefix||'.');
       return Object.entries(this.tree()).filter(([p])=>(p.slice(0,p.lastIndexOf('/'))||'/')===directory&&p.split('/').pop().startsWith(name)).map(([p,file])=>before+prefix+p.split('/').pop()+(file.type==='dir'?'/':' ')).sort();

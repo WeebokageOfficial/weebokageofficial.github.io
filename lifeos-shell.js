@@ -2,7 +2,7 @@
   'use strict';
   const frame = document.getElementById('site-content');
   const base = new URL('.', document.currentScript.src);
-  const pages = ['index','anime','games','credits','downloads','islam','transit','login','lifeos','scanner','chat'];
+  const pages = ['index','anime','games','credits','downloads','islam','transit','login','lifeos','scanner','chat','vocadb','pokemon'];
   let themeObserver = null;
   let installPrompt = null;
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; });

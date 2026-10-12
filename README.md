@@ -344,3 +344,91 @@ and downloads/caches the pinned tilt library in the system temporary directory.
 It covers telemetry thresholds/failures, battery events, real tilt initialization,
 clipboard contents, remount cleanup, modal/CLI launch, XP/level-up, daily limits,
 practice, timeout, invalid buffers and a complete touch round at 320px width.
+
+### Public VocaDB stream and Cyber-Dex
+
+`vocadb.html` and `pokemon.html` are standalone public pages in the persistent
+shell. Both also appear as Lifestyle widgets. No account, API key or backend
+proxy is needed. API schemas: [VocaDB](https://vocadb.net/api) and
+[PokéAPI](https://pokeapi.co/docs/v2).
+
+- `vocaloid random` chooses from 50 top-rated tracks; `vocaloid find QUERY`
+  prints the top three matches. Song of the Day caches its selection for 24 hours
+  in `vocadb_daily_cache`; reroll excludes the current song where possible.
+- `dex NAME_OR_ID` looks up stats, German species names/descriptions (English
+  fallback), height in metres and weight in kilograms. `dex list` reads the
+  local collection. Lookups never catch a Pokémon or award XP.
+- Completing every habit in a nonempty daily habit list creates one saved
+  encounter (IDs 1–251). Both dashboard checkboxes and `habit check` trigger it,
+  including while on another page. Close with Later and resume from the widget.
+  Reloading preserves the selected Pokémon. A failed API request does not
+  consume the catch; retry via Resume daily encounter.
+- Catching commits the unique collection entry, daily reward marker and +50 XP
+  in one LifeOS transaction, using Web Locks where available. Rechecking habits
+  cannot repeat the day's reward. A repeated species can earn the next day's
+  reward but does not increase the unique Dex count.
+- Collection and daily encounter records live in the versioned LifeOS profile
+  and its JSON backups; `cyberdex_caught` is a readable mirror. Existing saves
+  migrate to an empty collection. API results use a bounded local cache
+  (`weebokage.streams.cache.v1`), limited to 500,000 characters, with compact Pokémon responses cached for 30 days.
+  Requests time out after 12 seconds and return terminal stderr on failure.
+
+Implementation: `data-streams.js` (APIs and collection rules), `cyberdex.js`
+(shell-owned encounter), `streams-ui.js` (shared widgets/pages), and
+`data-streams.css`. The existing shared audio context supplies an 8-bit
+encounter fanfare and normal XP/level-up feedback.
+
+Validation: `node --test tests/*.test.cjs`, plus
+`python tests/data_streams_ui.py` against a local server with Playwright.
+Browser tests mock external services; no real account or backend writes occur.
+
+### Teto AI mini tools
+
+The **Teto Tools** tab now includes Roast & Refactor (three styles), Brain-Dump
+→ Quest Converter, Prompt Overclocker (code/image/writing), and Lore & Logic
+Scanner. The existing word counter and unit converter remain below the AI grid.
+Inputs and results survive LifeOS tab changes within the page session; raw text
+is not persisted. Only explicitly accepted quest drafts enter the shared LifeOS
+profile, with their category and 15–50 XP. Importing a quest does not award XP.
+Repeated imports of the same draft/title are ignored.
+
+`callTetoAI(systemPrompt, userText, {tool, onStatus})` in `lifeos.js` sends a
+stateless POST to `/lifeos/teto-ai`. `teto_ai.py` uses the existing Render
+`GROQ_API_KEY` / `GROQ_MODEL` configuration and the plain Groq model without
+chat history or privileged tools. Server and browser both validate the JSON
+output. Story percentages are editorial AI estimates; higher pacing scores
+indicate more tension, while higher plothole/cliché scores indicate more issues.
+
+Network/temporary service failures receive one automatic retry after a visible
+10-second countdown. Configuration, API-key, quota, invalid-output and missing
+endpoint errors instead explain the necessary fix. Deploy the updated FastAPI
+backend together with the frontend. The Groq API key stays server-side.
+
+Groq [retired regular-tier Llama 3.1 access on August 16, 2026](https://console.groq.com/docs/deprecations).
+The existing default is the recommended `openai/gpt-oss-20b` replacement. An
+eligible enterprise deployment can choose Llama through `GROQ_MODEL`.
+
+Checks: `python -m unittest discover -s tests -p 'test_*.py'` and
+`python tests/teto_tools_ui.py` (Playwright, local server, mocked Groq/Firebase).
+
+The Teto suite also includes three specialized workbenches:
+
+- **Decision Matrix:** enter A/B and optionally C with context. Teto chooses one
+  submitted label, explains why, and supplies a concrete work order with a
+  1–120 minute timebox. Output refers to the submitted snapshot even if you edit
+  an option during the request.
+- **Techno-Jargon:** choose cyberware, ordnance, software, propulsion or biotech.
+  The API returns exactly five unique fictional specifications. Copy Spec
+  includes name, acronym and description with shared audio feedback.
+- **Dialogue & Fight Choreographer:** provide two characters/stances, scene
+  intent, and verbal/CQC/neural mode. Structured beats carry BURST, TEMPO SHIFT
+  and CLIMAX tags. Save to Lore writes a Chapter Notes draft to the shared
+  profile and prevents duplicate saves of the same generated scene. Scene size
+  is constrained to the existing Lore note limit; saving awards no XP.
+
+`handleDecisionMatrix()`, `handleJargonGenerator()` and `handleChoreographer()`
+in `lifeos.js` dispatch through the same stateless Teto API. New request types
+validate their structured inputs and outputs in both the backend and browser.
+The specialized tools use trajectory loading feedback and shared submit/success
+blips. Update the Render backend with the expanded `teto_ai.py` alongside the
+frontend. Browser validation: `python tests/teto_specialized_ui.py`.

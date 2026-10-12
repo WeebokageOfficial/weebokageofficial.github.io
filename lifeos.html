@@ -21,6 +21,9 @@
 <link rel="stylesheet" href="cyber-modules.css?v=1">
 <script id="vanilla-tilt-sdk" src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js" async></script>
 <script src="holograms.js?v=1" defer></script>
+<link rel="stylesheet" href="data-streams.css?v=1">
+<script src="streams-ui.js?v=1" defer></script>
+<script src="teto-tools.js?v=1" defer></script>
 </head>
 <body class="lifeos-loading" data-page="lifeos">
   <div id="splash" class="splash" aria-label="LifeOS startup">
@@ -31,7 +34,7 @@
     <button type="button" id="enter-lifeos" class="primary">Enter LifeOS ↗</button>
   </div>
   <div id="dashboard" class="dashboard" inert>
-    <header class="cyber-header"><a class="cyber-brand" href="index.html" aria-label="Weebokage home"><span class="brand-mark">W<span>//</span>K</span><span>WEEBOKAGE<small>PERSONAL DIGITAL SECTOR</small></span></a><button type="button" class="menu-toggle" aria-expanded="false" aria-controls="cyber-navigation" aria-label="Open navigation"><span></span><span></span><span></span></button><nav id="cyber-navigation" class="cyber-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="lifeos.html" aria-current="page">LifeOS</a><a href="anime.html">Anime Catalog</a><a href="transit.html">Transit / ÖPNV</a><a href="chat.html">AI Chatbot</a><details class="nav-more"><summary>Explore +</summary><div><a href="scanner.html">Dimension Scanner</a><a href="games.html">Arcade</a><a href="credits.html">Credits</a><a href="transit.html" class="admin-hide" id="nav-transit">Private feeds</a><a href="islam.html" class="admin-hide" id="nav-islam">Islam Archive</a><a href="login.html?next=lifeos.html" id="lifeos-login">Account ↗</a></div></details><button class="cyber-theme" type="button" aria-label="Switch between Miku and Teto themes" aria-pressed="false">◈ <span>MIKU</span></button></nav></header>
+    <header class="cyber-header"><a class="cyber-brand" href="index.html" aria-label="Weebokage home"><span class="brand-mark">W<span>//</span>K</span><span>WEEBOKAGE<small>PERSONAL DIGITAL SECTOR</small></span></a><button type="button" class="menu-toggle" aria-expanded="false" aria-controls="cyber-navigation" aria-label="Open navigation"><span></span><span></span><span></span></button><nav id="cyber-navigation" class="cyber-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="lifeos.html" aria-current="page">LifeOS</a><a href="anime.html">Anime Catalog</a><a href="transit.html">Transit / ÖPNV</a><a href="chat.html">AI Chatbot</a><details class="nav-more"><summary>Explore +</summary><div><a href="scanner.html">Dimension Scanner</a><a href="vocadb.html">VocaDB Stream</a><a href="pokemon.html">Cyber-Dex</a><a href="games.html">Arcade</a><a href="credits.html">Credits</a><a href="transit.html" class="admin-hide" id="nav-transit">Private feeds</a><a href="islam.html" class="admin-hide" id="nav-islam">Islam Archive</a><a href="login.html?next=lifeos.html" id="lifeos-login">Account ↗</a></div></details><button class="cyber-theme" type="button" aria-label="Switch between Miku and Teto themes" aria-pressed="false">◈ <span>MIKU</span></button></nav></header>
     <main>
       <header class="page-heading"><div><p class="eyebrow">PERSONAL OPERATING SYSTEM / V.01</p><h1>LIFE<span>OS</span><span class="cursor">_</span></h1><p class="subtitle">Small steps. Higher frequency. Your life, in sync.</p></div><div class="header-utilities"><div class="app-controls"><a class="small-button" href="scanner.html">◉ Dimension Scanner</a><button type="button" id="terminal-toggle" class="small-button" aria-expanded="false" aria-label="Toggle terminal">&gt;_</button><button type="button" id="sound-toggle" class="small-button" data-action="toggle-sound" aria-label="Mute sounds" aria-pressed="false">🔊</button><button type="button" id="install-app" class="small-button" data-action="install-app">＋ Install app</button><span id="pwa-status" class="mini-label" role="status">LOCAL SYSTEM</span></div><div class="date-terminal"><span id="today-label"></span><span>WEEBOKAGE // PERSONAL SECTOR</span></div></div></header>
       <section class="card synchronization" aria-label="Level and synchronization"><div class="status-line"><span class="badge" id="level-label">LV. 1 CYBER NOVICE</span><span class="streak" id="streak-label">🔥 0D SYNC</span></div><div class="progress-label"><span>NEURAL SYNCHRONIZATION</span><span id="xp-label">0 / 100 XP (0%)</span></div><progress id="xp-bar" max="100" value="0" aria-label="Progress to the next level"></progress></section>
@@ -59,5 +62,57 @@
     <noscript><link rel="stylesheet" href="noscript.css">Please enable JavaScript to use LifeOS.</noscript>
   </div>
 <footer class="cyber-footer"><span><i aria-hidden="true"></i> SYSTEM ONLINE // WEEBOKAGE OS v3.9</span><span>MADE OF CODE, STORIES &amp; A LITTLE MIKU <a href="credits.html">CREDITS ↗</a></span></footer>
+  <template id="teto-ai-tools">
+    <section class="teto-ai-suite" aria-label="Teto KI-Werkzeuge">
+      <div class="teto-ai-heading"><div><span class="eyebrow">CHIMERA INTELLIGENCE // GROQ UPLINK</span><h2>Sieben Tools. Null Geduld für Datenchaos.</h2><p>„Du lieferst den Rohstoff. Ich kümmere mich um den Rest. Versuch mitzuhalten.“ — Teto</p></div><span class="tag">TETO SYSTEM 04</span></div>
+      <div class="teto-ai-grid">
+        <article id="teto-decision-box" class="card module-card teto-ai-card" data-teto-tool="decision">
+          <span class="eyebrow">05 // DECISION BREAKER</span><h2>Teto’s No-Bullshit Decision Matrix</h2><p class="hint">Zwei Wege. Ein nächster Schritt. Teto zieht die Entscheidung aus der Warteschleife.</p>
+          <form data-teto-form="decision">
+            <div class="teto-options-grid"><fieldset><legend>Option A</legend><label class="field">Vorhaben<input name="option_a" required maxlength="200" placeholder="Kapitel fertig schreiben"></label><label class="field">Pro / Contra / mentaler Blocker<textarea name="context_a" rows="2" maxlength="1500" placeholder="Bringt das Projekt weiter, aber der Einstieg fällt schwer …"></textarea></label></fieldset>
+            <fieldset><legend>Option B</legend><label class="field">Vorhaben<input name="option_b" required maxlength="200" placeholder="Cover-Design überarbeiten"></label><label class="field">Pro / Contra / mentaler Blocker<textarea name="context_b" rows="2" maxlength="1500" placeholder="Macht Spaß, ist aber gerade nicht dringend …"></textarea></label></fieldset></div>
+            <button class="small-button" type="button" data-teto-option-c aria-expanded="false" aria-controls="teto-decision-c">+ Option C hinzufügen</button>
+            <fieldset id="teto-decision-c" hidden disabled><legend>Option C</legend><label class="field">Vorhaben<input name="option_c" required maxlength="200" placeholder="Ein dritter Weg"></label><label class="field">Pro / Contra / mentaler Blocker<textarea name="context_c" rows="2" maxlength="1500"></textarea></label></fieldset>
+            <button class="primary teto-run" type="submit">[EXECUTE PROTOCOL // FORCE DECISION]</button>
+          </form><p class="teto-job-status" role="status" aria-live="polite"></p><div class="teto-tool-output" aria-live="polite"></div>
+        </article>
+        <article id="teto-jargon-box" class="card module-card teto-ai-card" data-teto-tool="jargon">
+          <span class="eyebrow">06 // LORE SYSTEM ARCHITECT</span><h2>Techno-Jargon Generator</h2><p class="hint">Plausible Sci-Fi-Bezeichnungen, markante Akronyme und fünf präzise Lore-Spezifikationen.</p>
+          <form data-teto-form="jargon"><label class="field">Kategorie<select name="category"><option value="cyberware">Cyberware / Implantate</option><option value="weapons">Waffensysteme / Ordnance</option><option value="software">Software / Neural-Protokolle</option><option value="propulsion">Antrieb / Raumfahrt</option><option value="biotech">Bio-Tech / Synthetik</option></select></label><label class="field">Zweck / Funktion<textarea name="text" rows="5" required maxlength="2000" placeholder="Tarnvorrichtung für Androiden auf Quantenebene …"></textarea></label><button class="primary teto-run" type="submit">[COMPILE SPECS // 5 VARIANTS]</button></form>
+          <p class="teto-job-status" role="status" aria-live="polite"></p><div class="teto-tool-output" aria-live="polite"></div>
+        </article>
+        <article id="teto-choreography-box" class="card module-card teto-ai-card teto-scene-card" data-teto-tool="choreography">
+          <span class="eyebrow">07 // ACTION &amp; DIALOGUE DIRECTOR</span><h2>Dialogue &amp; Fight Choreographer</h2><p class="hint">Kurze Sätze. Klare Absichten. Jeder Blick verschiebt die Szene.</p>
+          <form data-teto-form="choreography"><div class="teto-character-grid"><label class="field">Kämpfer / Sprecher 1 + Haltung<input name="first" required maxlength="500" placeholder="Rohan: verzweifelt, offensiv"></label><label class="field">Kämpfer / Sprecher 2 + Haltung<input name="second" required maxlength="500" placeholder="Gegner: kalt, kalkuliert"></label></div><label class="field">Modus<select name="scene_mode"><option value="verbal">Verbaler Konflikt / Schärfe</option><option value="cqc">Physischer Nahkampf / CQC</option><option value="neural">Waffen / Neural Clash</option></select></label><label class="field">Auslöser / Absicht der Szene<textarea name="text" rows="5" required maxlength="4000" placeholder="Rohan muss das Terminal erreichen, bevor sein Gegner den Upload beendet …"></textarea></label><button class="primary teto-run" type="submit">[RUN SIMULATION // CHOREOGRAPH]</button></form>
+          <p class="teto-job-status" role="status" aria-live="polite"></p><div class="teto-tool-output" aria-live="polite"></div>
+        </article>
+
+        <article class="card module-card teto-ai-card" data-teto-tool="polish">
+          <span class="eyebrow">01 // TEXT POLISHER</span><h2>Teto Roast &amp; Refactor</h2><p class="hint">Ein präziser Roast. Eine bessere Fassung. Deine Aussage bleibt deine.</p>
+          <form data-teto-form="polish"><label class="field">Rohtext, Notizen oder Dialog<textarea name="text" rows="6" maxlength="12000" required placeholder="Deine erste Fassung darf ruhig nach erster Fassung aussehen …"></textarea></label>
+            <div class="teto-style-modes" role="group" aria-label="Überarbeitungsstil"><button type="button" data-teto-mode="cyberpunk" aria-pressed="true">Cyberpunk Style</button><button type="button" data-teto-mode="drama" aria-pressed="false">Story Drama</button><button type="button" data-teto-mode="minimalist" aria-pressed="false">Minimalist</button></div>
+            <button class="primary teto-run" type="submit">[OPTIMIZE // TETO STYLE]</button></form>
+          <p class="teto-job-status" role="status" aria-live="polite"></p><div class="teto-tool-output" aria-live="polite"></div>
+        </article>
+        <article class="card module-card teto-ai-card" data-teto-tool="quests">
+          <span class="eyebrow">02 // TASK GENERATOR</span><h2>Brain-Dump → Quest Converter</h2><p class="hint">Gedanken rein. Konkrete Missionen raus. Du entscheidest, was ins Profil kommt.</p>
+          <form data-teto-form="quests"><label class="field">Ungeordnete Tagesgedanken<textarea name="text" rows="7" maxlength="12000" required placeholder="Einkaufen, Kapitel anfangen, die offenen Mails … sortier das mal, Teto."></textarea></label><button class="primary teto-run" type="submit">[PARSE TO QUESTS]</button></form>
+          <p class="teto-job-status" role="status" aria-live="polite"></p><div class="teto-tool-output" aria-live="polite"></div>
+        </article>
+        <article class="card module-card teto-ai-card" data-teto-tool="prompt">
+          <span class="eyebrow">03 // PROMPT ENGINEERING</span><h2>Prompt Overclocker</h2><p class="hint">Aus einer Idee wird ein brauchbarer Master-Prompt. Natürlich mit Struktur.</p>
+          <form data-teto-form="prompt"><label class="field">Deine Idee<input name="text" maxlength="1000" required placeholder="Sci-Fi-Stadt bei Nacht …"></label><label class="field">Ziel-Engine<select name="engine"><option value="code">Code LLM</option><option value="image">Image Gen / Midjourney</option><option value="writing">Creative Writing</option></select></label><button class="primary teto-run" type="submit">[OVERCLOCK PROMPT]</button></form>
+          <p class="teto-job-status" role="status" aria-live="polite"></p><div class="teto-tool-output" aria-live="polite"></div>
+        </article>
+        <article class="card module-card teto-ai-card" data-teto-tool="scanner">
+          <span class="eyebrow">04 // NARRATIVE DIAGNOSTICS</span><h2>Lore &amp; Logic Scanner</h2><p class="hint">Plotholes und Klischees: weniger ist besser. Spannung: mehr ist besser. KI-Einschätzungen, keine Messwerte.</p>
+          <form data-teto-form="scanner"><label class="field">Story-Entwurf oder Charakterskizze<textarea name="text" rows="7" maxlength="12000" required placeholder="Zeig mir deine Welt. Ich finde die losen Kabel."></textarea></label><button class="primary teto-run" type="submit">[SCAN LORE // FIND FAULTS]</button></form>
+          <p class="teto-job-status" role="status" aria-live="polite"></p><div class="teto-tool-output" aria-live="polite"></div>
+        </article>
+      </div>
+      <p class="hint">Deine Eingaben werden zur Verarbeitung an Groq gesendet. Ergebnisse bitte prüfen; Quests werden erst durch deinen Klick gespeichert.</p>
+    </section>
+  </template>
+
 </body>
 </html>

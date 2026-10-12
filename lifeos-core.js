@@ -8,7 +8,7 @@
   const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
   const titleForLevel = level => level >= 10 ? 'SYSTEM ARCHITECT' : level >= 6 ? 'NEURAL OPERATOR' : level >= 3 ? 'CYBER VOCALIST' : 'CYBER NOVICE';
   const newHabit = (title, xp) => ({ id: uid(), title, xp, days: [], rewarded: [] });
-  const defaults = () => ({ version: 1, level: 1, xp: 0, activeTab: 'lifestyle', activityDays: [], habits: [newHabit('Hydrate 2.5L', 15), newHabit('Creative Writing', 30), newHabit('15-Min Walk', 20)], quests: [{ id: uid(), title: 'Start your first chapter', priority: 'high', xp: 50, done: false, rewarded: false }, { id: uid(), title: 'Clear your desk', priority: 'low', xp: 20, done: false, rewarded: false }], notes: [], transactions: [], prayerDays: {}, prayerTimes: {}, prayerSchedules: {}, prayerRewards: {}, prayerOverrides: {}, prayerPrefs: {city:'Cologne',country:'Germany',method:3,timezone:'Europe/Berlin',coordinates:null}, preferences:{muted:false}, loreGraph:{nodes:[],edges:[]}, questHistory:{}, breachRewards:{}, questDay:dateKey() });
+  const defaults = () => ({ version: 1, level: 1, xp: 0, activeTab: 'lifestyle', activityDays: [], habits: [newHabit('Hydrate 2.5L', 15), newHabit('Creative Writing', 30), newHabit('15-Min Walk', 20)], quests: [{ id: uid(), title: 'Start your first chapter', priority: 'high', xp: 50, done: false, rewarded: false }, { id: uid(), title: 'Clear your desk', priority: 'low', xp: 20, done: false, rewarded: false }], notes: [], transactions: [], prayerDays: {}, prayerTimes: {}, prayerSchedules: {}, prayerRewards: {}, prayerOverrides: {}, prayerPrefs: {city:'Cologne',country:'Germany',method:3,timezone:'Europe/Berlin',coordinates:null}, preferences:{muted:false}, loreGraph:{nodes:[],edges:[]}, questHistory:{}, breachRewards:{}, cyberdex:{caught:[],encounters:{}}, questDay:dateKey() });
   const BACKUP_KEY = `${STORAGE_KEY}.backup`;
   const legacyCategories = { 'Charakterbogen':'Character Sheet', 'Kapitelnotiz':'Chapter Notes', 'Gehalt':'Salary', 'Wohnen':'Housing', 'Lebensmittel':'Groceries', 'Mobilität':'Transport', 'Freizeit':'Leisure', 'Sparen':'Savings', 'Sonstiges':'Other' };
   function validateState(parsed) {
@@ -30,8 +30,9 @@
       const ledger=parsed.breachRewards;
       if (!ledger || typeof ledger !== 'object' || Array.isArray(ledger) || Object.keys(ledger).length>366 || !Object.entries(ledger).every(([day,r])=>/^\d{4}-\d{2}-\d{2}$/.test(day) && r && Array.isArray(r.rounds) && r.rounds.length<=3 && r.rounds.every(id=>typeof id==='string' && id.length>0 && id.length<=100) && new Set(r.rounds).size===r.rounds.length && Number.isSafeInteger(r.lastSuccessAt) && r.lastSuccessAt>=0)) throw new Error('Invalid breach rewards');
     }
+    const cyberdex = validateCyberdex(parsed.cyberdex);
     const graph = validateLoreGraph(parsed.loreGraph);
-    const restored = { ...defaults(), ...parsed, loreGraph:graph };
+    const restored = { ...defaults(), ...parsed, cyberdex, loreGraph:graph };
     restored.preferences={muted:false,...parsed.preferences};
     restored.prayerPrefs={...defaults().prayerPrefs,...parsed.prayerPrefs};
     const prefs=restored.prayerPrefs;
@@ -43,6 +44,17 @@
     restored.notes = parsed.notes.map(n=>({...n,category:legacyCategories[n.category] || n.category}));
     restored.transactions = parsed.transactions.map(t=>({...t,category:legacyCategories[t.category] || t.category}));
     return restored;
+  }
+  function validateCyberdex(value = {caught:[],encounters:{}}) {
+    const id = n => Number.isInteger(n) && n >= 1 && n <= 251;
+    if (!value || !Array.isArray(value.caught) || value.caught.length > 251 || !value.encounters || typeof value.encounters !== 'object' || Array.isArray(value.encounters) || Object.keys(value.encounters).length > 10000) throw new Error('Invalid Cyber-Dex');
+    const ids = new Set();
+    for (const pokemon of value.caught) {
+      if (!pokemon || !id(pokemon.id) || ids.has(pokemon.id) || typeof pokemon.name !== 'string' || pokemon.name.length > 100 || typeof pokemon.displayName !== 'string' || pokemon.displayName.length > 100 || typeof pokemon.sprite !== 'string' || pokemon.sprite.length > 1000 || !Array.isArray(pokemon.types) || !pokemon.types.length || pokemon.types.length > 2 || !pokemon.types.every(t=>typeof t==='string' && /^[a-z-]{1,20}$/.test(t)) || !pokemon.stats || !['hp','attack','defense','speed'].every(k=>Number.isInteger(pokemon.stats[k]) && pokemon.stats[k]>=0 && pokemon.stats[k]<=1000) || !Number.isFinite(pokemon.height) || pokemon.height<0 || !Number.isFinite(pokemon.weight) || pokemon.weight<0 || typeof pokemon.description !== 'string' || pokemon.description.length > 1000) throw new Error('Invalid caught Pokémon');
+      ids.add(pokemon.id);
+    }
+    if (!Object.entries(value.encounters).every(([day,r])=>/^\d{4}-\d{2}-\d{2}$/.test(day) && r && id(r.id) && ['pending','caught'].includes(r.status))) throw new Error('Invalid daily encounters');
+    return value;
   }
   function validateLoreGraph(graph) {
     if (graph == null) return {nodes:[],edges:[]};
@@ -109,5 +121,5 @@
     while (state.xp >= 100 + (state.level - 1) * 50) { state.xp -= 100 + (state.level - 1) * 50; state.level++; }
     return {amount,level:state.level,levelUp:state.level > previous,titleChanged:titleForLevel(state.level)!==previousTitle,title:titleForLevel(state.level)};
   }
-  window.LifeOSCore = {STORAGE_KEY,BACKUP_KEY,dateKey,dayDistance,uid,prayers,titleForLevel,newHabit,defaults,validateState,validateLoreGraph,currentStreak,read,update,award};
+  window.LifeOSCore = {STORAGE_KEY,BACKUP_KEY,dateKey,dayDistance,uid,prayers,titleForLevel,newHabit,defaults,validateState,validateCyberdex,validateLoreGraph,currentStreak,read,update,award};
 })();
