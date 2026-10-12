@@ -143,6 +143,7 @@ body.theme-splash-open { overflow: hidden; }
 .victory-sprite {
     display: block;
     width: 100%;
+    height: clamp(160px, 45vh, 480px);
     height: clamp(160px, 45dvh, 480px);
     object-fit: contain;
     filter: drop-shadow(0 0 24px var(--victory-glow));
@@ -192,4 +193,14 @@ body.theme-splash-open { overflow: hidden; }
 #theme-switch-overlay.is-closing { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
     #theme-switch-overlay { transition: none; }
+}
+
+@media (max-width: 767px), (max-height: 500px) {
+    :is(#splash-victory-stage, .splash-victory-stage) {
+        padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    }
+    .victory-content { gap: 12px; }
+    .victory-sprite { height: 34vh; height: 34dvh; }
+    .victory-dialog { padding: 14px 16px; }
+    .victory-line { font-size: 14px; line-height: 1.5; margin-top: 8px; }
 }

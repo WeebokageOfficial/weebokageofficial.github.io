@@ -15,13 +15,24 @@
             "Hmph! Took you a while, but at least you came to your senses! Let's go! 🥖"
         ]
     };
+    // Warm the sprite cache in the document that owns the fullscreen overlay.
+    const sprites = {};
+    if (window.parent === window) {
+        for (const theme of ['miku', 'teto']) {
+            const sprite = new Image();
+            sprite.src = new URL(`assets/${theme}_victory.png`, assetBase).href;
+            sprites[theme] = sprite;
+        }
+    }
     const lastLine = {};
     let activeOverlay;
     let fadeTimer;
     let cleanupTimer;
+    let loadTimer;
     function clearVictory() {
         window.clearTimeout(fadeTimer);
         window.clearTimeout(cleanupTimer);
+        window.clearTimeout(loadTimer);
         activeOverlay?.remove();
         activeOverlay = null;
     }
@@ -47,12 +58,23 @@
         overlay.querySelector('img').src = new URL(`assets/${newTheme}_victory.png`, assetBase).href;
         overlay.querySelector('.victory-speaker').textContent = newTheme === 'miku' ? 'HATSUNE MIKU // 01' : 'KASANE TETO // 02';
         overlay.querySelector('.victory-line').textContent = line;
-        document.body.appendChild(overlay);
         activeOverlay = overlay;
-        fadeTimer = window.setTimeout(() => {
-            overlay.classList.add('is-closing');
-            cleanupTimer = window.setTimeout(clearVictory, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
-        }, 2400);
+        let started = false;
+        const start = () => {
+            if (activeOverlay !== overlay || started) return;
+            started = true;
+            window.clearTimeout(loadTimer);
+            document.body.appendChild(overlay);
+            fadeTimer = window.setTimeout(() => {
+                overlay.classList.add('is-closing');
+                cleanupTimer = window.setTimeout(clearVictory, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
+            }, 2400);
+        };
+        // Decode before starting the short animation; a failed image never blocks it.
+        const sprite = sprites[newTheme] || overlay.querySelector('img');
+        loadTimer = window.setTimeout(start, 1200);
+        if (sprite.decode) sprite.decode().then(start, start);
+        else start();
     }
     window.triggerThemeSwitchVictory = triggerThemeSwitchVictory;
     function syncTheme() {
