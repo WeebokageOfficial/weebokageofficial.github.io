@@ -16,10 +16,27 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
         <button id="deck-next" type="button" aria-label="Next track" disabled>⏭</button>
         <button id="deck-shuffle" type="button" aria-label="Shuffle" aria-pressed="false" disabled>⤨</button>
       </div><div class="deck-progress"><time id="deck-position">0:00</time><input id="deck-seek" type="range" min="0" max="1" step="1" value="0" aria-label="Track position" disabled><time id="deck-duration">0:00</time></div></div>
-      <div class="deck-connect"><label class="deck-volume">VOL <input id="deck-volume" type="range" min="0" max="100" value="50" aria-label="Volume" disabled></label><span id="deck-status" class="deck-status" role="status">CONNECT // DISCONNECTED</span><button id="deck-connect" class="small-button" type="button">Connect Spotify</button><button type="button" id="terminal-toggle" class="global-terminal-toggle" aria-controls="quake-terminal" aria-expanded="false" title="Kommandozentrale (^ / ~ / Escape)" aria-label="Kommandozentrale öffnen">&gt;_</button></div>
+      <div class="deck-connect"><label class="deck-volume">VOL <input id="deck-volume" type="range" min="0" max="100" value="50" aria-label="Volume" disabled></label><span id="deck-status" class="deck-status" role="status">CONNECT // DISCONNECTED</span><button id="deck-connect" class="small-button" type="button">Connect Spotify</button><button type="button" id="deck-size-toggle" class="small-button deck-size-toggle" aria-controls="cyberdeck" aria-expanded="true" aria-label="Spotify-Player verkleinern" title="Spotify-Player verkleinern">▾</button><button type="button" id="terminal-toggle" class="global-terminal-toggle" aria-controls="quake-terminal" aria-expanded="false" title="Kommandozentrale (^ / ~ / Escape)" aria-label="Kommandozentrale öffnen">&gt;_</button></div>
       <p id="deck-message" class="deck-message" role="status">Connect Spotify Premium, then select a song in Spotify.</p>
     </section>
 `;
+  const deck = document.getElementById('cyberdeck');
+  const sizeToggle = document.getElementById('deck-size-toggle');
+  const sizeKey = 'weebokage.spotify.deck.compact';
+  function setCompact(compact) {
+    deck.classList.toggle('is-compact', compact);
+    sizeToggle.setAttribute('aria-expanded', String(!compact));
+    const label = compact ? 'Spotify-Player vergrößern' : 'Spotify-Player verkleinern';
+    sizeToggle.setAttribute('aria-label', label);
+    sizeToggle.title = label;
+    sizeToggle.textContent = compact ? '▴' : '▾';
+  }
+  try { setCompact(localStorage.getItem(sizeKey) === 'true'); } catch (_) { setCompact(false); }
+  sizeToggle.addEventListener('click', () => {
+    const compact = !deck.classList.contains('is-compact');
+    setCompact(compact);
+    try { localStorage.setItem(sizeKey, String(compact)); } catch (_) { /* Size still works without storage. */ }
+  });
 })();
 // Isolated from dashboard storage, imports and module re-renders.
 (() => {

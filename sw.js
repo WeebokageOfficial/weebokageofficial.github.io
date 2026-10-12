@@ -1,7 +1,7 @@
 'use strict';
 
 // Only LifeOS shell assets are cached. Other pages, API calls and uploads pass through.
-const CACHE = 'lifeos-shell-v9';
+const CACHE = 'lifeos-shell-v10';
 const ASSETS = [
   './teto-tools.js', './vocadb.html', './pokemon.html', './data-streams.js', './cyberdex.js', './streams-ui.js', './data-streams.css', './companion-bubbles.js', './assets/tetokage.webp', './diagnostics.js', './holograms.js', './breach-model.js', './arcade.js', './cyber-modules.css', './noscript.css', './theme.css', './pages.css', './style.css', './responsive.css', './chrome.js', './chat.html', './chat.js', './neural.js',
   './assets/vendor/marked.umd.js', './assets/vendor/purify.min.js', './assets/vendor/highlight.min.js',

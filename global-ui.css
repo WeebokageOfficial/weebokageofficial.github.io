@@ -13,3 +13,14 @@
 @media(max-width:760px){:root{--deck-height:220px}.quake-terminal{height:65dvh;font-size:12px}.quake-terminal header,.quake-terminal form,#terminal-output{padding-left:12px;padding-right:12px}.quake-terminal form{gap:7px}.global-terminal-toggle{font-size:11px;padding:4px 8px}}
 @media(prefers-reduced-motion:reduce){.quake-terminal{transition:none}}
 .terminal-error{color:#ff9393}.quake-terminal form[data-exit]:not([data-exit="0"]) label{color:#ff9393}#shell-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:65;max-width:calc(100% - 28px);padding:12px 18px;border:1px solid var(--accent);border-radius:8px;background:#0a0e14f5;color:var(--accent);box-shadow:0 0 22px var(--glow);font:12px monospace}#shell-toast[hidden]{display:none}
+
+/* Compact mode keeps the same playback controls and persistent SDK instance. */
+.deck-size-toggle{min-width:36px;min-height:36px;font-size:18px;line-height:1}
+.cyberdeck.is-compact{grid-template-columns:minmax(0,1fr) auto auto;gap:10px;padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+.cyberdeck.is-compact .deck-art{flex-basis:36px;height:36px;border-radius:8px}
+.cyberdeck.is-compact .deck-track{gap:10px}
+.cyberdeck.is-compact .deck-label,.cyberdeck.is-compact .deck-progress,.cyberdeck.is-compact .deck-message,.cyberdeck.is-compact .deck-volume,.cyberdeck.is-compact .deck-status,.cyberdeck.is-compact #deck-connect,.cyberdeck.is-compact .deck-buttons button:not(#deck-play){display:none}
+.cyberdeck.is-compact .deck-playback{grid-row:auto;grid-column:auto}
+.cyberdeck.is-compact .deck-connect{flex-wrap:nowrap;max-width:none;gap:6px}
+.cyberdeck.is-compact #terminal-toggle{min-height:36px}
+@media(max-width:400px){.cyberdeck.is-compact #deck-artist{display:none}.cyberdeck.is-compact{gap:6px;padding-left:10px;padding-right:10px}}
