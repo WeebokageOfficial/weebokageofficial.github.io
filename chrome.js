@@ -18,10 +18,14 @@
   }
   themeButton?.addEventListener('click',()=>{
     const next=document.documentElement.dataset.theme==='teto'?'miku':'teto';
-    window.Weebokage?.setTheme(next, { manual: true });
+    // The menu owns this user action: trigger explicitly, rather than depending
+    // on setTheme detecting a change after shell/state synchronization.
+    setOpen(false);
+    window.Weebokage?.setTheme(next, { manual: true, silent: true });
     window.parent.LifeOSShell?.syncTheme();
     syncTheme();
-    setOpen(false);
+    const showVictory = window.triggerThemeSwitchVictory || window.parent.triggerThemeSwitchVictory;
+    showVictory?.(next);
   });
   document.addEventListener('themechange',syncTheme);
   window.addEventListener('storage',event=>{if(event.key==='theme'){document.documentElement.dataset.theme=localStorage.getItem('theme')||'miku';syncTheme();}});
