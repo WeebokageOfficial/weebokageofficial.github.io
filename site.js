@@ -108,19 +108,28 @@
         }
     }
 
-    function setTheme(theme) {
+    function setTheme(theme, options = {}) {
         const selected = theme === "teto" ? "teto" : "miku";
+        const changed = document.documentElement.dataset.theme !== selected;
         document.documentElement.setAttribute("data-theme", selected);
+        document.body?.classList.remove('theme-miku', 'theme-teto');
+        document.body?.classList.add(`theme-${selected}`);
+        localStorage.setItem('weebokage_current_theme', selected);
+        if (options.manual) {
+            const core = window.LifeOSCore || window.parent.LifeOSCore;
+            core?.update(state => { state.preferences.theme = selected; }, { activity: false });
+        }
         localStorage.setItem("theme", selected);
         const toggle = document.getElementById("theme-toggle");
         if (toggle) toggle.checked = selected === "teto";
         const title = document.getElementById("ai-title");
         if (title) title.textContent = selected === "teto" ? "TETO SYSTEM 04" : "MIKU SYSTEM 01";
         document.dispatchEvent(new CustomEvent("themechange", { detail: selected }));
+        if (changed && !options.silent) window.triggerThemeSwitchVictory?.(selected);
     }
 
     function themeToggle() {
-        setTheme(document.getElementById("theme-toggle")?.checked ? "teto" : "miku");
+        setTheme(document.getElementById("theme-toggle")?.checked ? "teto" : "miku", { manual: true });
     }
 
     function bindAuthNavigation(options = {}) {

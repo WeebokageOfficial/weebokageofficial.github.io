@@ -20,7 +20,7 @@
       selected = child?.getElementById('dashboard') ? (child.getElementById('dashboard').classList.contains('teto-theme') ? 'teto' : 'miku') : (child?.documentElement.dataset.theme || selected);
       if (!child?.getElementById('dashboard')) {
         selected = window.LifeOSCore.read().preferences.theme || selected;
-        if (child?.documentElement.dataset.theme !== selected) child?.defaultView?.Weebokage?.setTheme(selected);
+        if (child?.documentElement.dataset.theme !== selected) child?.defaultView?.Weebokage?.setTheme(selected, { silent: true });
       }
     } catch (_) { /* A restricted document cannot supply a theme. */ }
     document.documentElement.dataset.theme = selected;

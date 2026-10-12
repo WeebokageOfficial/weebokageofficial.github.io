@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  Weebokage.setTheme(localStorage.getItem('theme') || 'miku');
+  Weebokage.setTheme(localStorage.getItem('theme') || 'miku', { silent: true });
   WeebokageChat.initialize();
   Weebokage.bindAuthNavigation({onChange(user){WeebokageChat.setUser(user);document.getElementById('chat-auth-state').textContent=user?'SIGNED IN // COMPANION READY':'PUBLIC SESSION';}});
   document.getElementById('neural-form').addEventListener('submit',event=>{event.preventDefault();void WeebokageChat.ask();});

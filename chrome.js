@@ -9,7 +9,7 @@
   matchMedia('(min-width:1101px)').addEventListener('change',()=>setOpen(false));
   const themeButton=document.querySelector('.cyber-theme');
   function syncTheme(){const dashboard=document.getElementById('dashboard');const theme=dashboard?(dashboard.classList.contains('teto-theme')?'teto':'miku'):(localStorage.getItem('theme')==='teto'?'teto':'miku');
-    if(dashboard && document.documentElement.dataset.theme!==theme)window.Weebokage?.setTheme(theme);themeButton?.setAttribute('aria-pressed',String(theme==='teto'));const label=themeButton?.querySelector('span');if(label)label.textContent=theme.toUpperCase();
+    if(dashboard && document.documentElement.dataset.theme!==theme)window.Weebokage?.setTheme(theme, { silent: true });themeButton?.setAttribute('aria-pressed',String(theme==='teto'));const label=themeButton?.querySelector('span');if(label)label.textContent=theme.toUpperCase();
     document.querySelectorAll('.portal-art img,.neural-sidebar>img,.splash-avatar').forEach(image=>{
       const src=`assets/${theme==='teto'?'tetokage':'mikukage'}.webp`;
       if(image.getAttribute('src')!==src)image.src=src;
@@ -23,9 +23,7 @@
       syncTheme(); return;
     }
     const next=localStorage.getItem('theme')==='teto'?'miku':'teto';
-    const core=window.LifeOSCore || window.parent.LifeOSCore;
-    core?.update(state=>{state.preferences.theme=next;},{activity:false});
-    window.Weebokage?.setTheme(next);
+    window.Weebokage?.setTheme(next, { manual: true });
     window.parent.LifeOSShell?.syncTheme();
     syncTheme();
   });
@@ -37,7 +35,7 @@
     themeButton?.setAttribute('title','Teto Tools → Teto · all other tabs → Miku');
     const followCompanion=()=>{
       const theme=dashboard.classList.contains('teto-theme')?'teto':'miku';
-      if(document.documentElement.dataset.theme!==theme)window.Weebokage?.setTheme(theme);
+      if(document.documentElement.dataset.theme!==theme)window.Weebokage?.setTheme(theme, { silent: true });
       syncTheme();
     };
     new MutationObserver(followCompanion).observe(dashboard,{attributes:true,attributeFilter:['class']});

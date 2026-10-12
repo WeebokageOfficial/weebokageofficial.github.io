@@ -12,11 +12,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="site.js?v=1.0"></script>
+    <script src="site.js?v=1.1"></script>
 
 <link rel="stylesheet" href="pages.css?v=1">
 <link rel="stylesheet" href="theme.css?v=1">
-<script src="chrome.js?v=1" defer></script>
+<script src="chrome.js?v=2" defer></script>
+<link rel="stylesheet" href="theme-splash.css?v=7">
+<script src="theme.js?v=1" defer></script>
 </head>
 <body data-page="login">
 
@@ -48,7 +50,7 @@
     <script>
         "use strict";
         Weebokage.initFirebase();
-        Weebokage.setTheme(localStorage.getItem("theme") || "miku");
+        Weebokage.setTheme(localStorage.getItem("theme") || "miku", { silent: true });
         const allowedDestinations = new Set(["downloads.html", "transit.html", "islam.html", "lifeos.html"]);
         const requestedDestination = new URLSearchParams(window.location.search).get("next");
         const destination = allowedDestinations.has(requestedDestination) ? requestedDestination : "downloads.html";

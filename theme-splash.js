@@ -32,7 +32,7 @@
         // The shell follows LifeOS preferences, so update them before themechange.
         const core = window.LifeOSCore || window.parent.LifeOSCore;
         core?.update(state => { state.preferences.theme = theme; }, { activity: false });
-        if (window.Weebokage) window.Weebokage.setTheme(theme);
+        if (window.Weebokage) window.Weebokage.setTheme(theme, { silent: true });
         else {
             document.documentElement.dataset.theme = theme;
             write('theme', theme);

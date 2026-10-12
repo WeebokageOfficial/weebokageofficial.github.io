@@ -111,7 +111,7 @@ body.theme-splash-open { overflow: hidden; }
 #theme-splash-overlay > .splash-divider { transition: opacity .2s ease; }
 #theme-splash-overlay.is-victory > .splash-split,
 #theme-splash-overlay.is-victory > .splash-divider { opacity: 0; pointer-events: none; }
-#splash-victory-stage {
+:is(#splash-victory-stage, .splash-victory-stage) {
     --victory-color: #39c5bb;
     --victory-glow: rgba(57, 197, 187, .45);
     position: absolute;
@@ -123,11 +123,11 @@ body.theme-splash-open { overflow: hidden; }
     padding: 24px;
     isolation: isolate;
 }
-#theme-splash-overlay[data-victory-theme=teto] #splash-victory-stage {
+[data-victory-theme=teto] :is(#splash-victory-stage, .splash-victory-stage) {
     --victory-color: #d83232;
     --victory-glow: rgba(216, 50, 50, .5);
 }
-#splash-victory-stage::before {
+:is(#splash-victory-stage, .splash-victory-stage)::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -135,7 +135,7 @@ body.theme-splash-open { overflow: hidden; }
     background: radial-gradient(ellipse at 50% 40%, var(--victory-glow), transparent 65%), linear-gradient(145deg, #073238, #020e17 80%);
     animation: victory-expand-miku .45s ease-out both;
 }
-[data-victory-theme=teto] #splash-victory-stage::before {
+[data-victory-theme=teto] :is(#splash-victory-stage, .splash-victory-stage)::before {
     background: radial-gradient(ellipse at 50% 40%, var(--victory-glow), transparent 65%), linear-gradient(145deg, #480d20, #13040c 80%);
     animation-name: victory-expand-teto;
 }
@@ -177,5 +177,19 @@ body.theme-splash-open { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
     #theme-splash-overlay > .splash-split, #theme-splash-overlay > .splash-divider { transition: none; }
-    #splash-victory-stage::before, .victory-sprite, .victory-dialog { animation: none; }
+    :is(#splash-victory-stage, .splash-victory-stage)::before, .victory-sprite, .victory-dialog { animation: none; }
+}
+
+/* Switch celebrations do not capture focus, block inputs, or change scroll. */
+#theme-switch-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity .6s ease;
+}
+#theme-switch-overlay.is-closing { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+    #theme-switch-overlay { transition: none; }
 }

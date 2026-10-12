@@ -451,7 +451,7 @@
   }
   document.addEventListener('click', event => {
     const tab = event.target.closest('[data-tab]');
-    if (tab) { state.activeTab = tab.dataset.tab; ui.quote = 0; commit({activity:false}); void requestQuote(state.activeTab); if(state.activeTab==='imam')void PrayerClock.refresh(); return; }
+    if (tab) { const previousTheme = state.activeTab === 'teto' ? 'teto' : 'miku'; state.activeTab = tab.dataset.tab; const nextTheme = state.activeTab === 'teto' ? 'teto' : 'miku'; ui.quote = 0; commit({activity:false}); if (previousTheme !== nextTheme) window.Weebokage?.setTheme(nextTheme); void requestQuote(state.activeTab); if(state.activeTab==='imam')void PrayerClock.refresh(); return; }
     if (event.target.closest('#refresh-quote')) { ui.quote++; Dialogue.local(state.activeTab,true); renderHeader(); void requestQuote(state.activeTab,true); return; }
     const button = event.target.closest('[data-action]'); if (!button) return;
     const {action,id,value} = button.dataset;

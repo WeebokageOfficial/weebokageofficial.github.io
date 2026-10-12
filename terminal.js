@@ -254,7 +254,7 @@
       if(name==='stats')return result(this.stats());
       if(name==='theme'){
         if(!args.length)return result((Core.read().preferences.theme||'auto')+'\n');if(args.length!==1||!['miku','teto','auto'].includes(args[0]))fail('theme: expected miku, teto or auto',2);
-        Core.update(s=>{if(args[0]==='auto')delete s.preferences.theme;else s.preferences.theme=args[0];},{activity:false});if(args[0]!=='auto')window.Weebokage?.setTheme(args[0]);window.LifeOSShell?.syncTheme();return result(`theme: ${args[0]}\n`);
+        if(args[0]!=='auto')window.Weebokage?.setTheme(args[0], { manual: true });Core.update(s=>{if(args[0]==='auto')delete s.preferences.theme;else s.preferences.theme=args[0];},{activity:false});window.LifeOSShell?.syncTheme();return result(`theme: ${args[0]}\n`);
       }
       if(name==='vocaloid'||name==='dex'){
         if(!window.LifeOSDataStreams)fail('ERROR: Node unreachable — data module unavailable');
