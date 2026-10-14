@@ -30,6 +30,13 @@
       const ledger=parsed.breachRewards;
       if (!ledger || typeof ledger !== 'object' || Array.isArray(ledger) || Object.keys(ledger).length>366 || !Object.entries(ledger).every(([day,r])=>/^\d{4}-\d{2}-\d{2}$/.test(day) && r && Array.isArray(r.rounds) && r.rounds.length<=3 && r.rounds.every(id=>typeof id==='string' && id.length>0 && id.length<=100) && new Set(r.rounds).size===r.rounds.length && Number.isSafeInteger(r.lastSuccessAt) && r.lastSuccessAt>=0)) throw new Error('Invalid breach rewards');
     }
+    if (parsed.organisation != null) {
+      const o=parsed.organisation, str=(v,max)=>typeof v==='string' && v.length<=max;
+      const number=(v,min,max)=>Number.isFinite(v) && v>=min && v<=max;
+      const entries=a=>Array.isArray(a) && a.length<=10000 && a.every(v=>v && str(v.id,100) && str(v.title,200));
+      if (!o || !number(o.rate,.001,1e6) || !o.limits || !['checked','cabin'].every(k=>number(o.limits[k],.1,1000)) || !entries(o.purchases) || !entries(o.gear) || !entries(o.routes) || !o.vault || !['hotelEN','hotelJP','notes'].every(k=>str(o.vault[k],20000))) throw new Error('Invalid organisation data');
+      if (!o.purchases.every(p=>['Figuren/Merch','Kleidung','Elektronik','Snacks/Essen','Sonstiges'].includes(p.category) && ['JPY','EUR'].includes(p.currency) && number(p.price,.001,1e7) && number(p.rate,.001,1e6) && Number.isSafeInteger(p.cents) && p.cents>0) || !o.gear.every(g=>['Dokumente & Finanzen','Tech & Gear','Kleidung & Daily','Kofferraum-Reserve'].includes(g.group) && ['checked','cabin'].includes(g.bag) && number(g.weight,0,1000) && typeof g.done==='boolean') || !o.routes.every(r=>str(r.date,10) && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && str(r.time,5) && /^([01]\d|2[0-3]):[0-5]\d$/.test(r.time) && str(r.transport,200) && str(r.notes,4000) && ['UPCOMING','IN PROGRESS','COMPLETED'].includes(r.status))) throw new Error('Invalid organisation entries');
+    }
     const cyberdex = validateCyberdex(parsed.cyberdex);
     const graph = validateLoreGraph(parsed.loreGraph);
     const restored = { ...defaults(), ...parsed, cyberdex, loreGraph:graph };

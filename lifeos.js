@@ -63,6 +63,7 @@
     teto: { name: 'KASANE TETO', system: '04 // CHIMERA UTILITY', role: 'Less busywork. More done.', alt: 'Teto, your quick tools companion', quotes: ['Finally. Give me your text — I can count without a baguette, you know. 🥖', 'Miku would have taken longer. So, what are we converting?', 'Of course I’ll help. Someone around here has to be competent.'] },
     imam: { name: 'HATSUNE MIKU', system: '01 // REFLECTION GUIDE', role: 'A quiet moment for intention and consistency.', alt: 'Miku, your companion for daily reflection', quotes: ['Assalamu alaikum! Take a quiet moment to renew your intention, inshaAllah.', 'Bismillah — begin with a small, sincere step and make room for salah.', 'Alhamdulillah for another day. Make a little space for gratitude and reflection.'] }
   };
+  personas.organisation = {name:'ORGANISATOR-MIKU',system:'05 // MIKU LOGISTICS CORE',role:'Reise- und Alltagslogistik, alles an einem Ort.',alt:'Organisator-Miku als Reisebegleiterin',quotes:[]};
   const hadiths = [
     { text: 'The value of an action depends on the intention behind it.', source: 'Sahih al-Bukhari 1', url: 'https://sunnah.com/bukhari:1' },
     { text: 'The deeds most beloved to Allah are consistent, even if they are small.', source: 'Sahih al-Bukhari 6464', url: 'https://sunnah.com/bukhari:6464' },
@@ -138,6 +139,7 @@
     },
     key(context = this.context()) { return `${dateKey()}:${context.period}:${context.streak}:${context.missed_quests}:${window.firebase?.auth?.().currentUser?.uid || (window.firebase?.auth?.().currentUser ? "signed-in" : "guest")}`; },
     local(tab, reroll = false) {
+      if(tab==='organisation') return Organisation.dialogue();
       const context = this.context(), key = this.key(context), previous = ui.quotes[tab];
       if (!reroll && previous?.key === key) return previous.text;
       const phrases = {
@@ -370,6 +372,93 @@
     return {markup,mount,destroy};
   })();
 
+  // Organisation shares the main save document and its backup/export lifecycle.
+  const Organisation = (() => {
+    const categories = ['Figuren/Merch','Kleidung','Elektronik','Snacks/Essen','Sonstiges'];
+    const groups = ['Dokumente & Finanzen','Tech & Gear','Kleidung & Daily','Kofferraum-Reserve'];
+    const statuses = ['UPCOMING','IN PROGRESS','COMPLETED'];
+    const initial = () => ({rate:165, purchases:[], limits:{checked:23,cabin:7}, gear:groups.flatMap((group,i)=>[
+      ['Reisepass','Kreditkarten','Suica/Pasmo','Visum / Visit Japan Web QR'],
+      ['Powerbank','Adapter Type A','Steam Deck','Ladekabel'],['Kleidung','Daily Essentials'],['Souvenir-Reserve']
+    ][i].map(title=>({id:uid(),title,group,bag:i===0||i===1?'cabin':'checked',weight:0,done:false}))), routes:[], vault:{hotelEN:'',hotelJP:'',notes:''}});
+    let filter = 'all';
+    function data() {
+      if (!state.organisation) state.organisation = initial();
+      return state.organisation;
+    }
+    const money = cents => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(cents/100);
+    const total = () => data().purchases.reduce((sum,p)=>sum+p.cents,0);
+    const weight = bag => data().gear.filter(g=>g.bag===bag).reduce((sum,g)=>sum+g.weight,0);
+    const numeric = (value,min=0,max=1e7) => { const n=Number(value); if(String(value).trim()==='' || !Number.isFinite(n)||n<min||n>max) throw Error('Bitte eine gültige Zahl innerhalb des angegebenen Bereichs eingeben.'); return n; };
+    function dialogue() {
+      const d=data(), sum=total(), open=d.gear.filter(g=>!g.done).length;
+      if(sum>43000) return 'Zoll-Warnung: Die 430-€-Freigrenze ist überschritten. Melde deine Waren beim Zoll an und halte die Belege bereit!';
+      if(weight('checked')>d.limits.checked || weight('cabin')>d.limits.cabin) return 'Gewichts-Alarm! Prüfe dein Gepäcklimit und verteile dein Gear neu.';
+      if(sum>30000) return `Budget im Blick behalten: Noch ${money(43000-sum)} bis zur Freigrenze. ${open} Packpunkte offen.`;
+      return open ? `Logistics Core bereit! ${open} Packpunkte warten auf dich. Zoll-Puffer: ${money(43000-sum)}. Gewichte inklusive Koffer und Reserve eintragen.` : 'Ready for Departure! Deine Packliste ist vollständig. Prüfe noch Buchungen und Gepäckgewicht.';
+    }
+    const select = (name,values,current) => `<select name="${name}">${values.map(v=>`<option ${v===current?'selected':''}>${escape(v)}</option>`).join('')}</select>`;
+    const field = (label,content) => `<label class="field">${label}${content}</label>`;
+    const input = (name,type='text',extra='') => `<input name="${name}" type="${type}" ${extra}>`;
+    const num = (name,value,max='10000000') => input(name,'number',`min="0" max="${max}" step="0.001" value="${value}" required`);
+    const remove = (kind,id) => `<button type="button" class="icon-button" data-org-delete="${kind}" data-id="${escape(id)}" aria-label="Eintrag löschen">🗑</button>`;
+    function markup() {
+      const d=data(), sum=total(), tone=sum>43000?'alarm':sum>30000?'warning':'safe', ready=d.gear.length?Math.round(d.gear.filter(g=>g.done).length/d.gear.length*100):0;
+      return `<div class="organisation" lang="de"><section class="card module-card org-customs ${tone}"><div class="section-heading"><div><span class="eyebrow">01 // ZOLL-WÄCHTER</span><h2>Japan Customs & Souvenirs</h2></div><button type="button" class="small-button" data-org-export>[EXPORT RECEIPT LOG]</button></div><div class="org-hud"><strong>${money(sum)} / 430,00 €</strong><span>≈ ${new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(sum/100*d.rate)} JPY</span><span>${sum<=43000?`${money(43000-sum)} frei`:`${money(sum-43000)} über dem Limit`}</span></div><p class="org-status">${tone==='alarm'?'ALERT: CUSTOMS DUTY RISK / LIMIT EXCEEDED':tone==='warning'?'WARNING: APPROACHING THRESHOLD':'STATUS: SAFE'}</p><progress max="43000" value="${Math.min(sum,43000)}" aria-label="Zollfreigrenze"></progress><form data-org-form="purchase" class="org-form">${field('Artikelname',input('title','text','maxlength="200" required placeholder="Miku Figur Akihabara"'))}${field('Kategorie',select('category',categories))}${field('Preis',num('price','', '10000000'))}${field('Währung',select('currency',['JPY','EUR']))}${field('1 EUR = JPY',input('rate','number',`min="0.001" max="1000000" step="0.001" value="${d.rate}" required data-org-rate`))}<button class="primary">[+ ADD TO CUSTOMS LOG]</button></form><p class="hint">Umrechnung pro Kauf gespeichert; Kursänderungen gelten für neue Käufe. Schätzung pro Person ab 15 Jahren bei Flugreisen. Lebensmittel und andere Waren können Sonderregeln unterliegen. <a href="https://www.zoll.de/DE/Privatpersonen/Reisen/Rueckkehr-aus-einem-Nicht-EU-Staat/Zoll-und-Steuern/Reisefreimengen/reisefreimengen_node.html" target="_blank" rel="noopener">Zoll-Regeln ↗</a></p>${field('Kategoriefilter',`<select data-org-filter><option value="all">Alle Kategorien</option>${categories.map(c=>`<option ${c===filter?'selected':''}>${c}</option>`).join('')}</select>`)}<div class="org-table"><table><thead><tr><th>Artikel</th><th>Kategorie</th><th>Original / Kurs</th><th>EUR</th><th></th></tr></thead><tbody>${d.purchases.filter(p=>filter==='all'||p.category===filter).map(p=>`<tr><td>${escape(p.title)}</td><td>${escape(p.category)}</td><td>${p.price} ${p.currency} / ${p.rate}</td><td>${money(p.cents)}</td><td>${remove('purchases',p.id)}</td></tr>`).join('')||'<tr><td colspan="5">Noch keine Einkäufe in dieser Ansicht.</td></tr>'}</tbody></table></div></section>
+      <section class="card module-card"><span class="eyebrow">02 // TACTICAL LUGGAGE</span><h2>Weight & Gear Matrix</h2><p>Ready for Departure: ${ready}%</p><progress max="100" value="${ready}" aria-label="Packfortschritt"></progress><div class="org-grid">${[['checked','Aufgabegepäck'],['cabin','Handgepäck']].map(([key,label])=>`<div class="org-weight ${weight(key)>d.limits[key]?'alarm':''}">${field(`${label}: Limit (kg)`,input(key,'number',`min="0.1" max="1000" step="0.1" value="${d.limits[key]}" data-org-limit="${key}"`))}<p>${weight(key).toFixed(2)} / ${d.limits[key]} kg ${weight(key)>d.limits[key]?'— LIMIT EXCEEDED':''}</p><progress max="${d.limits[key]}" value="${Math.min(weight(key),d.limits[key])}" aria-label="${label} Gewicht"></progress></div>`).join('')}</div><p class="hint">Alle geplanten Gewichte zählen, auch ungepackte Einträge und Souvenir-Reserve. Koffer-Eigengewicht als Eintrag hinzufügen. Powerbanks gehören ins Handgepäck; Airline-Vorgaben prüfen.</p>${groups.map(group=>`<details open><summary>${escape(group)}</summary>${d.gear.filter(g=>g.group===group).map(g=>`<div class="org-gear"><label class="${g.done?'org-done':''}"><input type="checkbox" data-org-done="${escape(g.id)}" ${g.done?'checked':''}> ${escape(g.title)}</label>${field('kg',input('weight','number',`min="0" max="1000" step="0.001" value="${g.weight}" data-org-weight="${escape(g.id)}"`))}${field('Gepäck',`<select data-org-bag="${escape(g.id)}"><option value="checked" ${g.bag==='checked'?'selected':''}>Aufgabe</option><option value="cabin" ${g.bag==='cabin'?'selected':''}>Hand</option></select>`)}${remove('gear',g.id)}</div>`).join('')}</details>`).join('')}<form data-org-form="gear" class="org-form">${field('Neuer Packpunkt',input('title','text','maxlength="200" required'))}${field('Gruppe',select('group',groups))}<button class="small-button">+ Packpunkt</button></form></section>
+      <section class="card module-card"><span class="eyebrow">03 // ROUTE TIMELINE · JAPAN LOCAL TIME</span><h2>Shinkansen & Itinerary</h2><form data-org-form="route" class="org-form">${field('Datum',input('date','date','required'))}${field('Uhrzeit (Japan)',input('time','time','required'))}${field('Aktivität / Ort',input('title','text','maxlength="200" required'))}${field('Transportmittel',input('transport','text','maxlength="200" placeholder="Shinkansen Nozomi"'))}${field('Notizen / Buchungsnummer','<textarea name="notes" maxlength="4000"></textarea>')}<button class="primary">+ Tagesetappe</button></form><div class="org-timeline">${[...d.routes].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).map(r=>`<article><div><time>${escape(r.date)} · ${escape(r.time)}</time><h3>${escape(r.title)}</h3><p>${escape(r.transport)}</p><p class="org-notes">${escape(r.notes)}</p></div>${field('Status',`<select data-org-route="${escape(r.id)}">${statuses.map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}</select>`)}${remove('routes',r.id)}</article>`).join('')||empty('Noch keine Tagesetappen. Plane deine erste Route.')}</div></section>
+      <section class="card module-card"><span class="eyebrow">04 // EMERGENCY & OFFLINE VAULT</span><h2>Dein Notfall-Spickzettel</h2><div class="org-grid">${[['hotelEN','Hotel-Adresse · English'],['hotelJP','ホテル住所 · 日本語']].map(([key,label])=>`<div>${field(label,`<textarea data-org-vault="${key}" maxlength="10000">${escape(d.vault[key])}</textarea>`)}<button type="button" class="small-button" data-org-copy="${key}">Adresse kopieren</button></div>`).join('')}${[['police','Polizei Japan','110'],['medical','Notarzt / Feuerwehr','119'],['embassy','Deutsche Botschaft Tokio · Zentrale','+81 3 5791 7700']].map(([key,label,value])=>`<div class="org-emergency"><h3>${label}</h3><p>${value}</p><button type="button" class="small-button" data-org-copy="${key}">Nummer kopieren</button></div>`).join('')}</div><p class="hint"><a href="https://japan.diplo.de/ja-de/vertretungen/botschaft" target="_blank" rel="noopener">Botschaft: Adresse, Öffnungszeiten und Bereitschaftsdienst ↗</a></p>${field('Private Offline-Notizen',`<textarea data-org-vault="notes" maxlength="20000" placeholder="eSIM-Code, Buchungshinweise …">${escape(d.vault.notes)}</textarea>`)}<p class="hint">Lokal im Browser gespeichert, unverschlüsselt; in LifeOS-Backups enthalten.</p><p data-org-feedback role="status" aria-live="polite"></p></section></div>`;
+    }
+    function save(redraw=true) { Store.save(); if(redraw) render(); else renderHeader(); }
+    document.addEventListener('submit',event=>{
+      const form=event.target.closest('[data-org-form]'); if(!form) return;
+      event.preventDefault(); if(!form.reportValidity()) return;
+      try {
+        const f=Object.fromEntries(new FormData(form)), d=data();
+        if(!f.title.trim()) throw Error('Bitte einen Namen eingeben.');
+        if(form.dataset.orgForm==='purchase') {
+          const price=numeric(f.price,0.001), rate=numeric(f.rate,0.001,1e6), cents=Math.round(price*(f.currency==='JPY'?100/rate:100));
+          if(!Number.isSafeInteger(cents)||cents<1) throw Error('Der Preis muss mindestens 0,01 € entsprechen.');
+          d.rate=rate; d.purchases.push({id:uid(),title:f.title.trim(),category:f.category,price,currency:f.currency,rate,cents});
+        } else if(form.dataset.orgForm==='gear') d.gear.push({id:uid(),title:f.title.trim(),group:f.group,weight:0,bag:'checked',done:false});
+        else d.routes.push({id:uid(),...f,title:f.title.trim(),status:'UPCOMING'});
+        save();
+      } catch(error) { notify(error.message); }
+    });
+    document.addEventListener('change',event=>{
+      const el=event.target; if(!el.closest('.organisation')) return;
+      const d=data();
+      try {
+        if(el.matches('[data-org-filter]')) {filter=el.value;render();return;}
+        if(el.matches('[data-org-limit]')) d.limits[el.dataset.orgLimit]=numeric(el.value,0.1,1000);
+        else if(el.matches('[data-org-rate]')) { d.rate=numeric(el.value,0.001,1e6); save(false); return; }
+        else if(el.matches('[data-org-weight]')) d.gear.find(g=>g.id===el.dataset.orgWeight).weight=numeric(el.value,0,1000);
+        else if(el.matches('[data-org-done]')) d.gear.find(g=>g.id===el.dataset.orgDone).done=el.checked;
+        else if(el.matches('[data-org-bag]')) d.gear.find(g=>g.id===el.dataset.orgBag).bag=el.value;
+        else if(el.matches('[data-org-route]')) d.routes.find(r=>r.id===el.dataset.orgRoute).status=el.value;
+        else return;
+        save();
+      } catch(error) {notify(error.message); el.setCustomValidity(error.message);el.reportValidity();el.setCustomValidity('');}
+    });
+    document.addEventListener('input',event=>{
+      const key=event.target.dataset.orgVault;
+      if(key) {data().vault[key]=event.target.value;save(false);}
+    });
+    document.addEventListener('click',async event=>{
+      const del=event.target.closest('[data-org-delete]'), copy=event.target.closest('[data-org-copy]');
+      if(del) { const key=del.dataset.orgDelete;data()[key]=data()[key].filter(v=>v.id!==del.dataset.id);save(); }
+      if(copy) {
+        const text=data().vault[copy.dataset.orgCopy] ?? ({police:'110',medical:'119',embassy:'+81 3 5791 7700'})[copy.dataset.orgCopy];
+        try { if(!text) throw Error(); await navigator.clipboard.writeText(text);notify('Kopiert.'); } catch(_) {notify('Kopieren nicht möglich. Text bitte markieren und manuell kopieren.');}
+      }
+      if(event.target.closest('[data-org-export]')) {
+        const d=data(), lines=['MIKU LOGISTICS CORE — CUSTOMS RECEIPT LOG',new Date().toISOString(),'Manuelle Umrechnung; Originalbelege bereithalten.','',...d.purchases.map(p=>`${p.title} | ${p.category} | ${p.price} ${p.currency} | 1 EUR = ${p.rate} JPY | ${money(p.cents)}`),'',`Gesamt: ${money(total())} / 430,00 €`, `Puffer: ${money(43000-total())}`];
+        const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'})), a=document.createElement('a');a.href=url;a.download=`customs-log-${dateKey()}.txt`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }
+    });
+    return {markup,dialogue};
+  })();
+
   // Rendering: all user-controlled content is escaped before HTML insertion.
   let notificationTimer;
   function notify(message) { const el = $('#notification'); el.textContent = message; el.classList.add('visible'); clearTimeout(notificationTimer); notificationTimer = setTimeout(() => el.classList.remove('visible'), 5000); }
@@ -397,6 +486,8 @@
     $('#quote-source').textContent = loading ? 'COMPANION IS THINKING…' : ui.quotes[state.activeTab]?.live ? 'LIVE COMPANION' : 'LOCAL COMPANION';
     $('#refresh-quote').disabled = ui.quotePending[state.activeTab] === contextKey;
     $('#sound-toggle').textContent=state.preferences.muted ? '🔇' : '🔊';
+    if(state.activeTab==='organisation') { $('#persona-quote').textContent=Organisation.dialogue(); $('#persona-quote').closest('.quote-bubble').setAttribute('aria-busy','false'); $('#quote-source').textContent='MIKU LOGISTICS CORE // LOCAL'; $('#refresh-quote').disabled=false; }
+    $('#dashboard').classList.toggle('organisation-theme',state.activeTab==='organisation');
     $('#sound-toggle').setAttribute('aria-label',state.preferences.muted ? 'Unmute sounds' : 'Mute sounds');
     $('#sound-toggle').setAttribute('aria-pressed',String(state.preferences.muted));
     updateSaveStatus();
@@ -430,7 +521,7 @@
     const hadith = hadiths[ui.hadith];
     return `<div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>☾</span>Daily Prayer Sync</h2><p>The five daily prayers · ${escape(day)}</p></div><span class="tag">${done.length}/5</span></div><div class="prayer-settings"><form id="prayer-location-form"><div class="field-pair"><label class="field">City<input name="city" required maxlength="80" value="${escape(state.prayerPrefs.city)}"></label><label class="field">Country<input name="country" required maxlength="80" value="${escape(state.prayerPrefs.country)}"></label></div><label class="field">Calculation method<select name="method">${options([['3','Muslim World League'],['2','ISNA'],['4','Umm al-Qura'],['12','UOIF'],['13','Diyanet']],String(state.prayerPrefs.method))}</select></label><div class="prayer-actions"><button class="small-button" type="submit">Load times</button><button class="small-button" type="button" data-action="locate-prayers">◎ Use my location</button><button class="small-button" type="button" data-action="refresh-prayers">↻ Refresh</button></div></form><p id="prayer-status" class="hint">${escape(PrayerClock.status || (state.prayerPrefs.coordinates ? 'Your coordinates' : state.prayerPrefs.city+', '+state.prayerPrefs.country))}</p></div><div id="prayer-countdown" class="prayer-countdown" role="timer" aria-live="off">Next prayer: loading times…</div>${prayers.map(name=>`<div class="prayer-row"><input class="row-check" type="checkbox" data-change="prayer" data-name="${name}" ${done.includes(name)?'checked':''} aria-label="${name} prayed today"><span class="row-copy row-title">${name}<span class="prayer-xp">+20 XP</span></span><input type="time" data-change="prayer-time" data-name="${name}" value="${escape(times[name] || '')}" aria-label="Today’s time for ${name}"></div>`).join('')}<p class="hint">Aladhan times use the selected calculation method. Match your local mosque if needed; manual edits are preserved. Times shown in ${escape(state.prayerPrefs.timezone)}. Each prayer earns 20 XP once per day.</p></section><section class="card module-card" data-holo-card="hadith"><div class="section-heading"><div><h2>Hadith of the Day</h2><p>A moment to reflect.</p></div><button class="icon-button" data-action="next-hadith" aria-label="Show another hadith">↻</button></div><p class="hadith-text">${hadith.text}</p><a class="source-link" href="${hadith.url}" target="_blank" rel="noopener noreferrer">${hadith.source} ↗</a><p class="hint">English paraphrase of an excerpt. Read the complete hadith in the linked source.</p><div class="card-bottom">INTENTION // CONSISTENCY // KNOWLEDGE</div></section></div>`;
   }
-  function render() { LoreGraph.destroy(); renderHeader(); $('#module-panel').innerHTML = ({ lifestyle:renderLifestyle, lore:renderLore, finance:renderFinance, teto:renderTools, imam:renderImam })[state.activeTab](); if (state.activeTab === 'lifestyle') window.LifeOSStreamsUI?.mount(); if (state.activeTab === 'lore') LoreGraph.mount(); if (state.activeTab === 'teto') { setConverterUnits(); window.LifeOSTetoTools?.mount(); } if (state.activeTab === 'imam') PrayerClock.tick(); }
+  function render() { LoreGraph.destroy(); renderHeader(); $('#module-panel').innerHTML = ({ lifestyle:renderLifestyle, lore:renderLore, finance:renderFinance, teto:renderTools, imam:renderImam, organisation:Organisation.markup })[state.activeTab](); if (state.activeTab === 'lifestyle') window.LifeOSStreamsUI?.mount(); if (state.activeTab === 'lore') LoreGraph.mount(); if (state.activeTab === 'teto') { setConverterUnits(); window.LifeOSTetoTools?.mount(); } if (state.activeTab === 'imam') PrayerClock.tick(); }
   function commit({ activity = true, redraw = true } = {}) { if (activity) Store.touch(); const saved = Store.save(); if (redraw) render(); else renderHeader(); Dialogue.schedule(); return saved; }
   function setConverterUnits() { const names = Object.keys(units[$('#convert-kind').value]); $('#convert-from').innerHTML = options(names.map(v=>[v,v]),names[0]); $('#convert-to').innerHTML = options(names.map(v=>[v,v]),names[1]); convert(); }
   function convert() {
@@ -582,6 +673,7 @@
     } catch (_) { notify('This is not a valid LifeOS backup. Your current progress is unchanged.'); }
   }
   async function requestQuote(tab,manual=false) {
+    if(tab==='organisation') {renderHeader();return;}
     const context=Dialogue.context(),key=Dialogue.key(context);
     if (ui.quotePending[tab] === key || (!manual && ui.quotes[tab]?.live && ui.quotes[tab]?.key === key)) return;
     const previous=ui.quotes[tab]?.text || '';

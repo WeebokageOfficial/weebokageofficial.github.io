@@ -1,7 +1,7 @@
 'use strict';
 
 // Only LifeOS shell assets are cached. Other pages, API calls and uploads pass through.
-const CACHE = 'lifeos-shell-v13';
+const CACHE = 'lifeos-shell-v14';
 const ASSETS = [
   './theme.js', './theme-splash.js', './theme-splash.css',
   './assets/miku_victory.png', './assets/teto_victory.png',
@@ -13,7 +13,7 @@ const ASSETS = [
   './lifeos.html', './lifeos.css', './lifeos.js', './site.js', './manifest.json', './favicon.svg',
   './assets/mikukage.webp', './assets/mikukage.png', './assets/wallpaper.webp', './assets/wallpaper-2.webp',
   './assets/sprites/sprite_lifestyle.png', './assets/sprites/sprite_lore.png',
-  './assets/sprites/sprite_finance.png', './assets/sprites/sprite_teto.png', './assets/sprites/sprite_imam.png'
+  './assets/sprites/sprite_organisation.png', './assets/sprites/sprite_finance.png', './assets/sprites/sprite_teto.png', './assets/sprites/sprite_imam.png'
 ];
 const allowed = new Set(ASSETS.map(path => new URL(path, self.registration.scope).pathname));
 
