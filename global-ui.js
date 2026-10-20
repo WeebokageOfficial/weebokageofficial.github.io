@@ -9,6 +9,9 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
       <form id="terminal-form" autocomplete="off"><label for="terminal-input">user@lifeos:~$</label><input id="terminal-input" type="text" spellcheck="false" autocomplete="off" maxlength="500" aria-label="Terminal command"></form>
     </section>
     <section id="cyberdeck" class="cyberdeck" aria-label="Spotify CyberDeck music player">
+      <div id="player-character-stage" data-character="miku" aria-label="Character stage">
+        <img id="player-bop-sprite" src="assets/miku_idle_bop.png" alt="Miku dancer" class="bop-character">
+      </div>
       <div class="deck-track"><div class="deck-art"><span aria-hidden="true">♫</span><img id="deck-cover" alt="Current album cover" hidden></div><div class="deck-metadata"><span class="deck-label">SPOTIFY // CYBERDECK</span><a id="deck-title" href="https://open.spotify.com" target="_blank" rel="noopener noreferrer">Your soundtrack awaits</a><span id="deck-artist">LifeOS CyberDeck</span></div></div>
       <div class="deck-playback"><div class="deck-buttons">
         <button id="deck-prev" type="button" aria-label="Previous track" disabled>⏮</button>
@@ -21,6 +24,57 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     </section>
 `;
   const deck = document.getElementById('cyberdeck');
+  const stage = document.getElementById('player-character-stage');
+  const sprite = document.getElementById('player-bop-sprite');
+  const assetBase = new URL('.', document.currentScript.src);
+  // Decode all four poses once; playback and theme changes share one resolver.
+  const sprites = new Map();
+  for (const theme of ['miku', 'teto']) {
+    for (const pose of ['bop', 'idle_bop']) {
+      const image = new Image();
+      image.src = new URL(`assets/${theme}_${pose}.png`, assetBase).href;
+      const ready = image.decode().then(() => true, () => false);
+      sprites.set(`${theme}_${pose}`, { image, ready });
+    }
+  }
+  let character, isPlaying = false, switchVersion = 0;
+  async function updatePlayerSprite(playing = isPlaying) {
+    if (typeof playing === 'boolean') isPlaying = playing;
+    let saved;
+    try { saved = localStorage.getItem('weebokage_current_theme') || localStorage.getItem('theme'); } catch (_) { /* Body theme works without storage. */ }
+    const selected = document.body.classList.contains('theme-teto') ? 'teto'
+      : document.body.classList.contains('theme-miku') ? 'miku'
+      : document.documentElement.dataset.theme || saved || 'miku';
+    const theme = selected === 'teto' ? 'teto' : 'miku';
+    const next = `${theme}_${isPlaying ? 'bop' : 'idle_bop'}`;
+    if (!isPlaying) sprite.classList.remove('is-bopping');
+    if (next === character) return;
+    const initial = character === undefined;
+    character = next;
+    const version = ++switchVersion;
+    const { image, ready } = sprites.get(next);
+    sprite.classList.add('is-switching');
+    const [loaded] = await Promise.all([ready, new Promise(resolve => setTimeout(resolve,
+      initial || matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150))]);
+    if (version !== switchVersion) return;
+    if (loaded) {
+      sprite.src = image.src;
+      sprite.alt = theme === 'teto' ? 'Teto dancer' : 'Miku dancer';
+      stage.dataset.character = theme;
+      sprite.classList.toggle('is-bopping', isPlaying);
+    } else {
+      character = undefined; // Permit a later update to retry the resolution.
+      sprite.classList.remove('is-bopping');
+    }
+    sprite.classList.remove('is-switching');
+  }
+  window.updatePlayerSprite = updatePlayerSprite;
+  const syncCharacter = () => { void updatePlayerSprite(); };
+  new MutationObserver(syncCharacter).observe(document.body, {attributes:true, attributeFilter:['class']});
+  new MutationObserver(syncCharacter).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+  document.addEventListener('themechange', syncCharacter);
+  window.addEventListener('storage', syncCharacter);
+  void updatePlayerSprite(false);
   const sizeToggle = document.getElementById('deck-size-toggle');
   const sizeKey = 'weebokage.spotify.deck.compact';
   function setCompact(compact) {
@@ -123,6 +177,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
   }
   function renderState(state) {
     playback = state; sampledAt = performance.now();
+    void window.updatePlayerSprite(!!state && !state.paused);
     const track = state?.track_window?.current_track;
     el('title').textContent = track?.name || 'Your soundtrack awaits';
     el('title').href = track?.id ? `https://open.spotify.com/track/${encodeURIComponent(track.id)}` : 'https://open.spotify.com';
