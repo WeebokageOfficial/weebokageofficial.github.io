@@ -25,13 +25,14 @@
 .cyberdeck.is-compact #terminal-toggle{min-height:36px}
 @media(max-width:400px){.cyberdeck.is-compact #deck-artist{display:none}.cyberdeck.is-compact{gap:6px;padding-left:10px;padding-right:10px}}
 
-/* Bottom-clipped rhythm stage: the bezel hides the sprite's cut edge. */
+/* Counter-rotate the diagonal leg cut and tuck it below the bezel.
+   Individual transforms preserve this framing throughout the bop animation. */
 .cyberdeck{grid-template-columns:160px minmax(0,1fr) minmax(230px,1fr) minmax(180px,.7fr)}
 #player-character-stage{--stage-color:#39c5bb;--stage-glow:rgba(57,197,187,.35);position:relative;grid-row:1 / span 2;width:160px;aspect-ratio:1792 / 2400;align-self:center;overflow:hidden;isolation:isolate;border:1.5px solid var(--stage-color);border-radius:12px;background:linear-gradient(160deg,#14232bee,#090e16);backdrop-filter:blur(12px);box-shadow:0 0 12px var(--stage-glow),0 8px 24px #0005,inset 0 1px 0 #ffffff12;transition:border-color .2s,box-shadow .2s}
 #player-character-stage[data-character=teto]{--stage-color:#d83232;--stage-glow:rgba(216,50,50,.35)}
 #player-character-stage::before{content:'';position:absolute;inset:-25%;background:radial-gradient(ellipse at 50% 70%,var(--stage-glow),transparent 65%);animation:playerStageGlow 4s ease-in-out infinite;pointer-events:none}
 #player-character-stage::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 0 3px #090e1633;background:linear-gradient(to top,#090e16 0, #090e1699 5px,transparent 18px)}
-.bop-character{position:absolute;bottom:-5px;left:0;width:100%;height:100%;object-fit:contain;object-position:bottom center;transform-origin:bottom center;will-change:transform;transition:opacity .15s ease-in-out;opacity:1}
+.bop-character{position:absolute;bottom:-5px;left:0;width:100%;height:100%;object-fit:contain;object-position:bottom center;transform-origin:bottom center;translate:12% 13%;rotate:-10deg;scale:1.12;will-change:transform;transition:opacity .15s ease-in-out;opacity:1}
 .bop-character:not(.is-bopping){transform:translateY(0) scale(1)}
 .bop-character.is-switching{opacity:0}
 .bop-character.is-bopping{animation:necroDancerBop .48s cubic-bezier(.25,.1,.25,1) infinite}

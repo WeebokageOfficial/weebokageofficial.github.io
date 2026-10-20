@@ -10,7 +10,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     </section>
     <section id="cyberdeck" class="cyberdeck" aria-label="Spotify CyberDeck music player">
       <div id="player-character-stage" data-character="miku" aria-label="Character stage">
-        <img id="player-bop-sprite" src="assets/miku_idle_bop.png" alt="Miku dancer" class="bop-character">
+        <img id="player-bop-sprite" src="assets/miku_bop_idle.png" alt="Miku dancer" class="bop-character">
       </div>
       <div class="deck-track"><div class="deck-art"><span aria-hidden="true">♫</span><img id="deck-cover" alt="Current album cover" hidden></div><div class="deck-metadata"><span class="deck-label">SPOTIFY // CYBERDECK</span><a id="deck-title" href="https://open.spotify.com" target="_blank" rel="noopener noreferrer">Your soundtrack awaits</a><span id="deck-artist">LifeOS CyberDeck</span></div></div>
       <div class="deck-playback"><div class="deck-buttons">
@@ -30,7 +30,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
   // Decode all four poses once; playback and theme changes share one resolver.
   const sprites = new Map();
   for (const theme of ['miku', 'teto']) {
-    for (const pose of ['bop', 'idle_bop']) {
+    for (const pose of ['bop', 'bop_idle']) {
       const image = new Image();
       image.src = new URL(`assets/${theme}_${pose}.png`, assetBase).href;
       const ready = image.decode().then(() => true, () => false);
@@ -46,7 +46,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
       : document.body.classList.contains('theme-miku') ? 'miku'
       : document.documentElement.dataset.theme || saved || 'miku';
     const theme = selected === 'teto' ? 'teto' : 'miku';
-    const next = `${theme}_${isPlaying ? 'bop' : 'idle_bop'}`;
+    const next = `${theme}_${isPlaying ? 'bop' : 'bop_idle'}`;
     if (!isPlaying) sprite.classList.remove('is-bopping');
     if (next === character) return;
     const initial = character === undefined;
