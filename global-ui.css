@@ -35,8 +35,8 @@
 .bop-character{position:absolute;bottom:-5px;left:0;width:100%;height:100%;object-fit:contain;object-position:bottom center;transform-origin:bottom center;translate:12% 13%;rotate:-10deg;scale:1.12;will-change:transform;transition:opacity .15s ease-in-out;opacity:1}
 .bop-character:not(.is-bopping){transform:translateY(0) scale(1)}
 .bop-character.is-switching{opacity:0}
-.bop-character.is-bopping{animation:necroDancerBop .36s cubic-bezier(.2,.8,.25,1) infinite}
-@keyframes necroDancerBop{0%,100%{transform:translateY(0) scale(1,1)}22%{transform:translateY(10px) scale(1.12,.82);animation-timing-function:cubic-bezier(.15,.85,.25,1)}46%{transform:translateY(-6px) scale(.94,1.09)}72%{transform:translateY(2px) scale(1.03,.97)}}
+.bop-character.is-bopping{animation:necroDancerBop .34s cubic-bezier(.25,.1,.25,1) infinite}
+@keyframes necroDancerBop{0%,100%{transform:translateY(0) scale(1,1)}40%{transform:translateY(6px) scale(1.05,.92)}70%{transform:translateY(-4px) scale(.97,1.04)}}
 @keyframes playerStageGlow{0%,100%{opacity:.5;transform:scale(.94)}50%{opacity:1;transform:scale(1.06)}}
 .cyberdeck .deck-message{grid-column:2/-1}
 .cyberdeck.is-compact{grid-template-columns:minmax(0,1fr) auto auto}
