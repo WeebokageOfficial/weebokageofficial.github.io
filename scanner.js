@@ -1,4 +1,4 @@
-import {scannerLocations, latLonToCartesian, formatCoordinate, makeLoreNode} from './scanner-model.js';
+import {scannerLocations, latLonToCartesian, formatCoordinate, makeLoreNode} from './scanner-model.js?v=private-1';
 
 let THREE;
 export function latLonToVector3(lat, lon, radius = 1) {
@@ -22,7 +22,7 @@ function renderDirectory() {
 function syncAuto() {
   const active = autoEnabled && !selected;
   $('scanner-auto').setAttribute('aria-pressed',String(active));
-  $('scanner-auto').textContent = `↻ Auto-Rotate: ${selected?'pausiert':active?'an':'aus'}`;
+  $('scanner-auto').textContent = `↻ Auto-Rotate: ${selected?'paused':active?'on':'off'}`;
   engine?.setAuto(active);
 }
 function tick() {
@@ -41,8 +41,8 @@ function renderHud(location) {
   const hud = $('scanner-hud');
   hud.style.setProperty('--signal',location.color);
   const sensors = location.type==='real'
-    ? `<h3>SIMULIERTE TELEMETRIE</h3><div class="scanner-sensors"><div><small>LOKALE UHRZEIT</small><strong id="scanner-local-time"></strong><p>${escape(location.timezone)}</p></div><div><small>DEMO-WETTER</small><strong>${location.temperature} °C</strong><p>${escape(location.weather)}</p></div></div><p class="scanner-simulation">Wetter und Höhe sind simulierte Sensordaten. Die Ortszeit wird aus der angegebenen Zeitzone live berechnet.</p><a class="scanner-hud-link" href="transit.html">Transit / Fahrplan öffnen ↗</a>`
-    : `<h3>WCU // LORE-SIGNATUR</h3><p class="scanner-description">${escape(location.dimension)}</p><h3>GEFAHRENSTUFE</h3><div class="scanner-danger" aria-label="Gefahrenstufe ${location.danger} von 5">${Array.from({length:5},(_,i)=>`<i class="${i<location.danger?'active':''}" aria-hidden="true"></i>`).join('')}<span>LV. ${location.danger} / 5</span></div><p class="scanner-simulation">Fiktiver Dimensions-Rift. Alle Signaturen und Messwerte gehören zum WCU-Lore-System.</p><button type="button" class="scanner-hud-link" id="scanner-lore-link">${linked(location)?'Im Lore-Graph öffnen':'Im Lore-Graph speichern & öffnen'} ↗</button><p id="scanner-link-status" class="scanner-simulation" role="status"></p>`;
+    ? `<h3>SIMULATED TELEMETRY</h3><div class="scanner-sensors"><div><small>LOCAL TIME</small><strong id="scanner-local-time"></strong><p>${escape(location.timezone)}</p></div><div><small>DEMO WEATHER</small><strong>${location.temperature} °C</strong><p>${escape(location.weather)}</p></div></div><p class="scanner-simulation">Weather and altitude are simulated sensor data. Local time is calculated live from the indicated time zone.</p><a class="scanner-hud-link" href="transit.html">Open transit / timetable ↗</a>`
+    : `<h3>SIMULATION // SIGNAL SIGNATURE</h3><p class="scanner-description">${escape(location.dimension)}</p><h3>DANGER LEVEL</h3><div class="scanner-danger" aria-label="Danger level ${location.danger} of 5">${Array.from({length:5},(_,i)=>`<i class="${i<location.danger?'active':''}" aria-hidden="true"></i>`).join('')}<span>LV. ${location.danger} / 5</span></div><p class="scanner-simulation">Fictional dimensional rift. All signatures and readings belong to the WCU lore system.</p><button type="button" class="scanner-hud-link" id="scanner-lore-link">${linked(location)?'Open in lore graph':'Save and open in lore graph'} ↗</button><p id="scanner-link-status" class="scanner-simulation" role="status"></p>`;
   $('scanner-hud-body').innerHTML = `<span class="scanner-status-badge">${location.status}</span><h2 id="scanner-hud-title">${escape(location.name)}</h2><p class="scanner-place">${escape(location.place)}</p><dl class="scanner-coordinates"><div><dt>LATITUDE</dt><dd>${formatCoordinate(location.lat)}</dd></div><div><dt>LONGITUDE</dt><dd>${formatCoordinate(location.lon,false)}</dd></div><div><dt>ALTITUDE / SIM</dt><dd id="scanner-altitude"></dd></div><div><dt>LAST SAMPLE</dt><dd id="scanner-sampled-at"></dd></div></dl><p class="scanner-description">${escape(location.description)}</p>${sensors}`;
   hud.classList.add('open');hud.inert=false;hud.setAttribute('aria-hidden','false');
   $('scanner-close').focus({preventScroll:true});tick();
@@ -63,14 +63,14 @@ function closeHud({reset=false,restoreFocus=true}={}) {
   autoEnabled=reset?!reducedMotion.matches:rotationBeforeFocus;
   renderDirectory();syncAuto();engine?.reset();
   $('scanner-view-status').textContent = engine?'ORBIT / OVERVIEW':'DIRECTORY MODE';
-  announce('Übersicht wiederhergestellt. Wähle ein Signal, um den Sektor zu scannen.');
+  announce('Overview restored. Choose a signal to scan the sector.');
   if(previous&&restoreFocus)$('scanner-location-list').querySelector(`[data-scanner-location="${previous.id}"]`)?.focus({preventScroll:true});
   if(previous&&matchMedia('(max-width:700px)').matches)stage.scrollIntoView({block:'nearest',behavior:reducedMotion.matches?'instant':'smooth'});
 }
 function setFilter(next) {
   if(selected&&next!=='all'&&selected.type!==next)closeHud({restoreFocus:false});
   filter=next;document.querySelectorAll('[data-scanner-filter]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.scannerFilter===next)));
-  engine?.filter(next);renderDirectory();announce(`${visibleLocations().length} Signale im aktuellen Filter.`);
+  engine?.filter(next);renderDirectory();announce(`${visibleLocations().length} signals in the current filter.`);
 }
 function openLore() {
   if(!selected||selected.type!=='rift')return;
@@ -79,7 +79,7 @@ function openLore() {
     if(!linked(location))window.LifeOSCore.update(state=>{if(!state.loreGraph.nodes.some(existing=>existing.id===node.id))state.loreGraph.nodes.push(node);},{activity:false});
     const url=`lifeos.html?tab=lore&node=${encodeURIComponent(node.id)}`;
     if(window.parent.LifeOSShell)window.parent.LifeOSShell.navigate(url);else window.location.assign(url);
-  } catch(error) {const text=`Lore-Link konnte nicht gespeichert werden: ${error.message}`;announce(text);$('scanner-link-status').textContent=text;}
+  } catch(error) {const text=`Could not save the lore link: ${error.message}`;announce(text);$('scanner-link-status').textContent=text;}
 }
 $('scanner-location-list').addEventListener('click',event=>{const button=event.target.closest('[data-scanner-location]');if(button)selectLocation(button.dataset.scannerLocation);},listeners);
 document.querySelectorAll('[data-scanner-filter]').forEach(button=>button.addEventListener('click',()=>setFilter(button.dataset.scannerFilter),listeners));
@@ -98,9 +98,9 @@ class DimensionScanner {
     this.pointer=new THREE.Vector2();this.raycaster=new THREE.Raycaster();this.occludingSphere=new THREE.Sphere(new THREE.Vector3(),2);this.occlusionPoint=new THREE.Vector3();
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#05070a');
     this.camera=new THREE.PerspectiveCamera(40,1,.1,100);this.homeCamera=new THREE.Vector3(0,.45,8.5);this.camera.position.copy(this.homeCamera);
-    try {this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});}catch(error){throw new Error('WebGL 2 ist nicht verfügbar. Die Signale bleiben über das Verzeichnis zugänglich.');}
+    try {this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});}catch(error){throw new Error('WebGL 2 is unavailable. Signals remain accessible in the directory.');}
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,matchMedia('(max-width:700px)').matches?1.5:2));this.renderer.outputColorSpace=THREE.SRGBColorSpace;
-    this.renderer.domElement.setAttribute('aria-label','Hologramm-Globus: ziehen zum Drehen, scrollen oder zwei Finger zum Zoomen. Signale sind auch über das Verzeichnis auswählbar.');this.renderer.domElement.tabIndex=0;host.append(this.renderer.domElement);
+    this.renderer.domElement.setAttribute('aria-label','Holographic globe: drag to rotate, scroll or pinch to zoom. Signals can also be selected in the directory.');this.renderer.domElement.tabIndex=0;host.append(this.renderer.domElement);
     this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableDamping=true;this.controls.dampingFactor=.065;this.controls.enablePan=false;this.controls.minDistance=4.6;this.controls.maxDistance=12;this.controls.minPolarAngle=.12;this.controls.maxPolarAngle=Math.PI-.12;this.controls.autoRotateSpeed=.36;this.controls.zoomSpeed=.7;this.controls.rotateSpeed=.6;this.controls.touches.TWO=THREE.TOUCH.DOLLY_ROTATE;
     this.onControlsStart=()=>{this.lastInteraction=performance.now();this.interacting=true;this.flight=null;};this.onControlsEnd=()=>{this.lastInteraction=performance.now();this.interacting=false;};
     this.controls.addEventListener('start',this.onControlsStart);this.controls.addEventListener('end',this.onControlsEnd);
@@ -108,7 +108,7 @@ class DimensionScanner {
     this.makeGlobe();this.makeStars();this.makeGimbals();this.makeMarkers();this.bindPointers();
     this.onResize=()=>this.resize();window.addEventListener('resize',this.onResize,listeners);this.observer=new ResizeObserver(this.onResize);this.observer.observe(host);this.resize();
     this.onVisibility=()=>{if(document.hidden)this.pause();else this.resume();};document.addEventListener('visibilitychange',this.onVisibility,listeners);
-    this.renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();this.pause();unavailable('WebGL-Kontext verloren. Lade den Scanner erneut; das Signalverzeichnis bleibt bedienbar.');},listeners);
+    this.renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();this.pause();unavailable('WebGL context lost. Reload the scanner; the signal directory remains available.');},listeners);
     this.animate=this.animate.bind(this);this.resume();
   }
   geometry(value){this.geometries.add(value);return value;}
@@ -123,7 +123,7 @@ class DimensionScanner {
     const equatorGeometry=this.geometry(new THREE.BufferGeometry());equatorGeometry.setAttribute('position',new THREE.Float32BufferAttribute(equator,3));this.globe.add(new THREE.Line(equatorGeometry,this.material(new THREE.LineBasicMaterial({color:'#39C5BB',transparent:true,opacity:.5,depthWrite:false}))));
   }
   async land() {
-    const response=await fetch('assets/scanner/earth-land.json',{signal:lifetime.signal});if(!response.ok)throw new Error('Kontinentdaten konnten nicht geladen werden.');const data=await response.json();if(this.dead||disposed)return;
+    const response=await fetch('assets/scanner/earth-land.json',{signal:lifetime.signal});if(!response.ok)throw new Error('Could not load continent data.');const data=await response.json();if(this.dead||disposed)return;
     const positions=[];for(const [lat,lon] of data.points){const p=latLonToCartesian(lat,lon,2.025);positions.push(p.x,p.y,p.z);}
     const geometry=this.geometry(new THREE.BufferGeometry());geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
     this.landMaterial=this.material(new THREE.PointsMaterial({color:'#6ef8e2',size:.027,sizeAttenuation:true,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));
@@ -243,7 +243,7 @@ class DimensionScanner {
 }
 function unavailable(reason) {
   $('scanner-system-status').textContent='DIRECTORY MODE';$('scanner-view-status').textContent='3D UNAVAILABLE';
-  $('scanner-loading').hidden=false;$('scanner-loading').classList.add('failed');$('scanner-loading').querySelector('strong').textContent='Signalverzeichnis verfügbar';$('scanner-loading').querySelector('span').textContent=reason;
+  $('scanner-loading').hidden=false;$('scanner-loading').classList.add('failed');$('scanner-loading').querySelector('strong').textContent='Signal directory available';$('scanner-loading').querySelector('span').textContent=reason;
   announce(reason);
 }
 async function boot() {
@@ -251,8 +251,8 @@ async function boot() {
     const modules=await Promise.all([import('three'),import('three/addons/controls/OrbitControls.js')]);if(disposed)return;
     THREE=modules[0];engine=new DimensionScanner(modules[1].OrbitControls);engine.filter(filter);syncAuto();if(selected)engine.focus(selected);
     $('scanner-loading').hidden=true;$('scanner-system-status').textContent='CONNECTED';$('scanner-view-status').textContent=selected?`LOCK / ${selected.id.toUpperCase()}`:'ORBIT / OVERVIEW';
-    try{await engine.land();}catch(error){if(error.name!=='AbortError')announce('Globus aktiv; Kontinentdaten nicht verfügbar. Marker und Koordinaten bleiben bedienbar.');}
-  }catch(error){if(!disposed)unavailable(error.message?.includes('WebGL')?error.message:'3D-Bibliothek nicht erreichbar. Prüfe die Verbindung und lade die Seite erneut. Alle sechs Signale bleiben im Verzeichnis verfügbar.');}
+    try{await engine.land();}catch(error){if(error.name!=='AbortError')announce('Globe active; continent data unavailable. Markers and coordinates still work.');}
+  }catch(error){if(!disposed)unavailable(error.message?.includes('WebGL')?error.message:'3D library unavailable. Check your connection and reload. All six signals remain available in the directory.');}
 }
 function dispose() {if(disposed)return;disposed=true;clearInterval(clockTimer);lifetime.abort();engine?.dispose();engine=null;}
 window.addEventListener('pagehide',event=>{if(event.persisted)engine?.pause();else dispose();});

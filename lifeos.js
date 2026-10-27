@@ -63,14 +63,15 @@
     teto: { name: 'KASANE TETO', system: '04 // CHIMERA UTILITY', role: 'Less busywork. More done.', alt: 'Teto, your quick tools companion', quotes: ['Finally. Give me your text — I can count without a baguette, you know. 🥖', 'Miku would have taken longer. So, what are we converting?', 'Of course I’ll help. Someone around here has to be competent.'] },
     imam: { name: 'HATSUNE MIKU', system: '01 // REFLECTION GUIDE', role: 'A quiet moment for intention and consistency.', alt: 'Miku, your companion for daily reflection', quotes: ['Assalamu alaikum! Take a quiet moment to renew your intention, inshaAllah.', 'Bismillah — begin with a small, sincere step and make room for salah.', 'Alhamdulillah for another day. Make a little space for gratitude and reflection.'] }
   };
-  personas.organisation = {name:'ORGANISATOR-MIKU',system:'05 // MIKU LOGISTICS CORE',role:'Reise- und Alltagslogistik, alles an einem Ort.',alt:'Organisator-Miku als Reisebegleiterin',quotes:[]};
   const hadiths = [
     { text: 'The value of an action depends on the intention behind it.', source: 'Sahih al-Bukhari 1', url: 'https://sunnah.com/bukhari:1' },
     { text: 'The deeds most beloved to Allah are consistent, even if they are small.', source: 'Sahih al-Bukhari 6464', url: 'https://sunnah.com/bukhari:6464' },
     { text: 'Whoever follows a path seeking knowledge, Allah makes a path to Paradise easier for them.', source: 'Sahih Muslim 2699a', url: 'https://sunnah.com/muslim:2699a' }
   ];
+  if(state.activeTab==='organisation') state.activeTab='teto';
   if (!personas[state.activeTab]) state.activeTab = 'lifestyle';
-  const requestedTab = new URLSearchParams(location.search).get('tab');
+  const savedTab = new URLSearchParams(location.search).get('tab');
+  const requestedTab = savedTab==='organisation'?'teto':savedTab;
   if (Object.hasOwn(personas, requestedTab)) state.activeTab = requestedTab;
 
   // Audio is synthesised locally and only unlocked by a user interaction.
@@ -139,7 +140,6 @@
     },
     key(context = this.context()) { return `${dateKey()}:${context.period}:${context.streak}:${context.missed_quests}:${window.firebase?.auth?.().currentUser?.uid || (window.firebase?.auth?.().currentUser ? "signed-in" : "guest")}`; },
     local(tab, reroll = false) {
-      if(tab==='organisation') return Organisation.dialogue();
       const context = this.context(), key = this.key(context), previous = ui.quotes[tab];
       if (!reroll && previous?.key === key) return previous.text;
       const phrases = {
@@ -290,12 +290,12 @@
 
   // Graph data is deliberately plain JSON: backup imports cannot inject vis options.
   const LoreGraph = (() => {
-    const types = {dimension:['Dimension','#39C5BB'],character:['Charakter','#9d4edd'],faction:['Fraktion','#ff007f'],artifact:['Artefakt','#e0a96d'],event:['Event','#e0a96d']};
+    const types = {dimension:['Dimension','#39C5BB'],character:['Character','#9d4edd'],faction:['Faction','#ff007f'],artifact:['Artifact','#e0a96d'],event:['Event','#e0a96d']};
     let network = null, selected = new URLSearchParams(location.search).get('node'), filter = 'all';
     const animation = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : {duration:450,easingFunction:'easeInOutQuad'};
     const visible = () => state.loreGraph.nodes.filter(n=>filter==='all' || n.type===filter);
     function markup() {
-      return `<section class="card module-card lore-graph"><div class="section-heading"><div><h2>◈ Lore & Dimensions</h2><p>Your universe, connected.</p></div><button type="button" id="lore-add-node" class="small-button">+ Neuer Knoten</button></div><div class="toolbar"><label class="field">Knoten suchen<input id="lore-node-search" type="search" placeholder="Name eingeben …"></label><label class="field">Typ<select id="lore-type-filter"><option value="all">Alle Typen</option>${Object.entries(types).map(([key,[label]])=>`<option value="${key}" ${filter===key?'selected':''}>${label}</option>`).join('')}</select></label><button id="lore-fit" type="button" class="small-button">Übersicht</button></div><p id="lore-graph-status" class="hint" role="status"></p><div class="lore-graph-layout"><div><div id="lore-network-canvas" tabindex="0" aria-label="Interactive lore network"></div><div id="lore-node-list" class="lore-node-list" aria-label="Accessible node list"></div></div><aside id="lore-sidebar" aria-label="Node details" hidden></aside></div></section>`;
+      return `<section class="card module-card lore-graph"><div class="section-heading"><div><h2>◈ Lore & Dimensions</h2><p>Your universe, connected.</p></div><button type="button" id="lore-add-node" class="small-button">+ New node</button></div><div class="toolbar"><label class="field">Search nodes<input id="lore-node-search" type="search" placeholder="Enter a name …"></label><label class="field">Type<select id="lore-type-filter"><option value="all">All types</option>${Object.entries(types).map(([key,[label]])=>`<option value="${key}" ${filter===key?'selected':''}>${label}</option>`).join('')}</select></label><button id="lore-fit" type="button" class="small-button">Overview</button></div><p id="lore-graph-status" class="hint" role="status"></p><div class="lore-graph-layout"><div><div id="lore-network-canvas" tabindex="0" aria-label="Interactive lore network"></div><div id="lore-node-list" class="lore-node-list" aria-label="Accessible node list"></div></div><aside id="lore-sidebar" aria-label="Node details" hidden></aside></div></section>`;
     }
     function data() {
       const nodes = visible(); const ids = new Set(nodes.map(n=>n.id));
@@ -304,8 +304,8 @@
     function refresh() {
       network?.setData(data());
       $('#lore-node-list').innerHTML = visible().map(n=>`<button type="button" class="small-button" data-lore-node="${escape(n.id)}">${escape(n.name)}</button>`).join('');
-      $('#lore-graph-status').textContent = state.loreGraph.nodes.length ? `${visible().length} / ${state.loreGraph.nodes.length} Knoten. Ziehen, zoomen oder einen Knoten auswählen.` : 'Dein Universum beginnt hier. Lege deinen ersten Knoten an.';
-      if (!window.vis?.Network) $('#lore-graph-status').textContent += ' Graph-Bibliothek nicht verfügbar; die Knotenliste bleibt bedienbar.';
+      $('#lore-graph-status').textContent = state.loreGraph.nodes.length ? `${visible().length} / ${state.loreGraph.nodes.length} nodes. Drag, zoom or select a node.` : 'Your universe starts here. Create your first node.';
+      if (!window.vis?.Network) $('#lore-graph-status').textContent += ' Graph library unavailable; the node list is still usable.';
       if (selected && !visible().some(n=>n.id===selected)) { selected=null; $('#lore-sidebar').hidden=true; }
     }
     function focus(id) {
@@ -316,7 +316,7 @@
     function sidebar(n) {
       const links=state.loreGraph.edges.filter(e=>e.from===n.id||e.to===n.id);
       const panel=$('#lore-sidebar'); panel.hidden=false;
-      panel.innerHTML=`<div class="section-heading"><h3>${escape(n.name)}</h3><button type="button" id="lore-sidebar-close" class="icon-button" aria-label="Close details">×</button></div><span class="tag" style="color:${types[n.type][1]}">${types[n.type][0]}</span><p>${escape(n.status)}</p><p class="hint">Heimatdimension / Fraktion: ${escape(n.home || '—')}</p><h4>Fähigkeiten / Attribute</h4><div class="lore-attributes">${n.attributes.map(a=>`<span class="tag">${escape(a)}</span>`).join('')||'<span class="hint">Noch keine Attribute.</span>'}</div><h4>Verbindungen</h4><div class="lore-connections">${links.map(e=>{const other=state.loreGraph.nodes.find(node=>node.id===(e.from===n.id?e.to:e.from));return `<button type="button" class="small-button" data-lore-node="${escape(other.id)}">${e.from===n.id?'→':'←'} ${escape(e.label || 'verbunden')} · ${escape(other.name)}</button>`;}).join('')||'<p class="hint">Noch keine Verbindungen.</p>'}</div><label class="field">Notizen<textarea id="lore-node-notes" maxlength="20000" rows="7">${escape(n.notes)}</textarea></label><span id="lore-note-save" class="hint" role="status">Notizen werden automatisch gespeichert.</span>`;
+      panel.innerHTML=`<div class="section-heading"><h3>${escape(n.name)}</h3><button type="button" id="lore-sidebar-close" class="icon-button" aria-label="Close details">×</button></div><span class="tag" style="color:${types[n.type][1]}">${types[n.type][0]}</span><p>${escape(n.status)}</p><p class="hint">Home dimension / faction: ${escape(n.home || '—')}</p><h4>Skills / attributes</h4><div class="lore-attributes">${n.attributes.map(a=>`<span class="tag">${escape(a)}</span>`).join('')||'<span class="hint">No attributes yet.</span>'}</div><h4>Connections</h4><div class="lore-connections">${links.map(e=>{const other=state.loreGraph.nodes.find(node=>node.id===(e.from===n.id?e.to:e.from));return `<button type="button" class="small-button" data-lore-node="${escape(other.id)}">${e.from===n.id?'→':'←'} ${escape(e.label || 'connected')} · ${escape(other.name)}</button>`;}).join('')||'<p class="hint">No connections yet.</p>'}</div><label class="field">Notes<textarea id="lore-node-notes" maxlength="20000" rows="7">${escape(n.notes)}</textarea></label><span id="lore-note-save" class="hint" role="status">Notes are saved automatically.</span>`;
     }
     function mount() {
       const canvas=$('#lore-network-canvas'); if (!canvas) return;
@@ -342,7 +342,7 @@
       if(event.target.closest('#lore-node-close')) $('#lore-node-dialog').close();
       if(event.target.closest('#lore-add-node')) {
         $('#lore-node-form').reset();
-        $('#lore-node-connections').innerHTML=`<legend>Verbindungen (vom neuen Knoten aus)</legend>${state.loreGraph.nodes.map(n=>`<label><input type="checkbox" name="connection" value="${escape(n.id)}"> ${escape(n.name)}</label>`).join('')||'<p class="hint">Weitere Knoten anlegen, um Verbindungen zu erstellen.</p>'}`;
+        $('#lore-node-connections').innerHTML=`<legend>Connections (from the new node)</legend>${state.loreGraph.nodes.map(n=>`<label><input type="checkbox" name="connection" value="${escape(n.id)}"> ${escape(n.name)}</label>`).join('')||'<p class="hint">Create more nodes to add connections.</p>'}`;
         $('#lore-node-dialog').showModal();
       }
     });
@@ -351,12 +351,12 @@
         const query=event.target.value.trim().toLocaleLowerCase();
         if(!query)return;
         const node=visible().find(n=>n.name.toLocaleLowerCase().includes(query));
-        if(node)focus(node.id); else $('#lore-graph-status').textContent='Kein passender Knoten im aktuellen Filter.';
+        if(node)focus(node.id); else $('#lore-graph-status').textContent='No matching node in the current filter.';
       }
       if(event.target.id==='lore-node-notes') {
         const node=state.loreGraph.nodes.find(n=>n.id===selected);if(!node)return;
         node.notes=event.target.value;
-        $('#lore-note-save').textContent=commit({activity:false,redraw:false})?'Notizen gespeichert.':'Nicht gespeichert — bitte Backup exportieren.';
+        $('#lore-note-save').textContent=commit({activity:false,redraw:false})?'Notes saved.':'Not saved — export a backup.';
       }
     });
     document.addEventListener('change',event=>{if(event.target.id==='lore-type-filter'){filter=event.target.value;refresh();network?.fit({animation:animation()});}});
@@ -365,7 +365,7 @@
       const attributes=String(form.get('attributes')).split(',').map(s=>s.trim()).filter(Boolean);
       if(!String(form.get('name')).trim() || attributes.length>50 || attributes.some(a=>a.length>100)){notify('Please check the name and attributes (max. 100 characters each).');return;}
       const nodes=[...state.loreGraph.nodes,{id,name:String(form.get('name')).trim(),type:form.get('type'),status:form.get('status'),home:form.get('home'),attributes,notes:form.get('notes')}];
-      const edges=[...state.loreGraph.edges,...form.getAll('connection').map(to=>({id:uid(),from:id,to,label:String(form.get('relation')).trim()||'verbunden'}))];
+      const edges=[...state.loreGraph.edges,...form.getAll('connection').map(to=>({id:uid(),from:id,to,label:String(form.get('relation')).trim()||'connected'}))];
       try {state.loreGraph=validateLoreGraph({nodes,edges});} catch (_) {notify('Graph limit reached or invalid node.');return;}
       selected=id;$('#lore-node-dialog').close();commit();focus(id);
     });
@@ -374,55 +374,136 @@
 
   // Organisation shares the main save document and its backup/export lifecycle.
   const Organisation = (() => {
-    const categories = ['Figuren/Merch','Kleidung','Elektronik','Snacks/Essen','Sonstiges'];
-    const groups = ['Dokumente & Finanzen','Tech & Gear','Kleidung & Daily','Kofferraum-Reserve'];
-    const statuses = ['UPCOMING','IN PROGRESS','COMPLETED'];
+    const categories = ['Figures/Merch','Clothing','Electronics','Snacks/Food','Other'];
+    const groups = ['Documents & Finance','Tech & Gear','Clothing & Daily','Suitcase capacity'];
     const initial = () => ({rate:165, purchases:[], limits:{checked:23,cabin:7}, gear:groups.flatMap((group,i)=>[
-      ['Reisepass','Kreditkarten','Suica/Pasmo','Visum / Visit Japan Web QR'],
-      ['Powerbank','Adapter Type A','Steam Deck','Ladekabel'],['Kleidung','Daily Essentials'],['Souvenir-Reserve']
+      ['Passport','Credit cards','Suica/Pasmo','Visa / Visit Japan Web QR'],
+      ['Powerbank','Type A adapter','Steam Deck','Charging cable'],['Clothing','Daily Essentials'],['Souvenir capacity']
     ][i].map(title=>({id:uid(),title,group,bag:i===0||i===1?'cabin':'checked',weight:0,done:false}))), routes:[], vault:{hotelEN:'',hotelJP:'',notes:''}});
-    let filter = 'all';
+    let filter = 'all', tetoRemark = '', reactionSource = 'LOCAL';
+    let reactionVersion = 0, reactionTimer;
     function data() {
-      if (!state.organisation) state.organisation = initial();
+      if (!state.organisation) {
+        state.organisation = initial();
+        try {
+          const rate = Number(localStorage.getItem('weebokage_japan_rate'));
+          if (rate >= 0.001 && rate <= 1e6) state.organisation.rate = rate;
+          const items = JSON.parse(localStorage.getItem('weebokage_japan_items') || '[]');
+          if (Array.isArray(items)) state.organisation.purchases = items.slice(0,10000).filter(p =>
+            p && typeof p.id === 'string' && p.id.length <= 100 && typeof p.name === 'string' && p.name.trim() && p.name.length <= 200 &&
+            Number.isFinite(p.priceJpy) && p.priceJpy >= 0.001 && p.priceJpy <= 1e7 &&
+            Number.isFinite(p.priceEur) && p.priceEur >= 0.01 && typeof p.timestamp === 'string'
+          ).map(p => ({...p, title:p.name, category:'Other', price:p.priceJpy, currency:'JPY', rate:state.organisation.rate, cents:Math.round(p.priceEur*100)}));
+        } catch (_) { notify('Japan tracker storage could not be loaded. Back up your existing data.'); }
+      }
+      // Legacy purchases have no recorded purchase time; timestamp their migration once.
+      for (const p of state.organisation.purchases) {
+        p.name = p.title;
+        p.priceJpy = p.currency === 'JPY' ? p.price : p.price*p.rate;
+        p.priceEur = p.cents/100;
+        p.timestamp = p.timestamp ?? new Date().toISOString();
+      }
       return state.organisation;
     }
     const money = cents => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(cents/100);
+    const yen = value => value.toLocaleString('de-DE', {maximumFractionDigits:3});
+    const jpyPrice = p => p.priceJpy ?? (p.currency === 'JPY' ? p.price : p.price*p.rate);
+    const euroAmount = value => value.toFixed(2).replace('.', ',');
+    // Budget model requested by the tracker: rates apply to the excess only.
+    // Actual customs assessment depends on whole items, commodity and origin.
+    function customsEstimate(cents) {
+      const taxable = cents > 43000;
+      const excess = Math.max(0,cents-43000);
+      const rate = !taxable ? 0 : cents <= 70000 ? 0.175 : 0.22;
+      const duty = Math.round(excess*rate);
+      return {taxable, duty, payable:cents+duty, remaining:Math.max(0,43000-cents),
+        tag: !taxable ? '' : cents <= 70000 ? '(Calculated using the flat rate of 17.5%)' : '(Guideline: ~19% import VAT + ~3% customs duty)'};
+    }
+    function tetoLine(item) {
+      const estimate=customsEstimate(total());
+      if (estimate.taxable) return item
+        ? `Congratulations, you’re over the limit! Budget around ${money(estimate.duty)} for customs. Your wallet sends its regards. 🥖`
+        : `${money(estimate.duty)} in estimated fees? Take the red customs exit, Operator. Let’s not turn souvenirs into a very expensive side quest!`;
+      const status=item
+        ? `You’ve got ${money(estimate.remaining)} left before customs wants a cut. Don’t spend it all in one gift shop!`
+        : 'All green on the shopping budget, Operator. Your wallet may be crying, but we’re still within the allowance. 🥖';
+      if (!item) return status;
+      const amount=item.cents/100;
+      if (amount < 20) return `${status} Peanuts. You really logged that? Even my baguette budget is more dramatic. 🥖`;
+      if (amount > 100) return `${status} Oof! ${euroAmount(amount)} € in one go? That souvenir had better come with its own theme song!`;
+      return `${status} Another ${euroAmount(amount)} € gone. Your wallet is quietly sobbing.`;
+    }
+    function paintReaction() {
+      const box=$('.org-teto');
+      if (!box) return;
+      box.querySelector('p').textContent=tetoRemark || tetoLine();
+      box.querySelector('[data-org-reaction-source]').textContent=reactionSource;
+    }
+    function requestReaction(action, item) {
+      const version=++reactionVersion, previous=tetoRemark;
+      clearTimeout(reactionTimer);
+      tetoRemark=tetoLine(action==='added' ? item : null);
+      reactionSource='LOCAL';
+      paintReaction();
+      if (!navigator.onLine || !window.Weebokage?.apiFetch) return;
+      // Coalesce rapid entries; never hold up saving or move the input focus.
+      const snapshot=JSON.stringify(data().purchases);
+      const payload={action,item_name:item?.title || '',item_cents:item?.cents || 0,total_cents:total(),previous:previous.slice(0,500)};
+      reactionSource='GROQ // THINKING…';
+      paintReaction();
+      reactionTimer=setTimeout(async()=>{
+        try {
+          const response=await Weebokage.apiFetch('/lifeos/customs-reaction', {method:'POST',timeout:15000,body:JSON.stringify(payload)});
+          const result=await response.json();
+          if (typeof result.quote!=='string' || !result.quote.trim() || result.quote.length>500) throw Error('Invalid reaction');
+          if (version!==reactionVersion || snapshot!==JSON.stringify(data().purchases)) return;
+          tetoRemark=result.quote.trim();
+          reactionSource='GROQ // LIVE';
+        } catch (_) {
+          if (version!==reactionVersion) return;
+          reactionSource='LOCAL // GROQ UNAVAILABLE';
+        }
+        paintReaction();
+      },400);
+    }
     const total = () => data().purchases.reduce((sum,p)=>sum+p.cents,0);
     const weight = bag => data().gear.filter(g=>g.bag===bag).reduce((sum,g)=>sum+g.weight,0);
-    const numeric = (value,min=0,max=1e7) => { const n=Number(value); if(String(value).trim()==='' || !Number.isFinite(n)||n<min||n>max) throw Error('Bitte eine gültige Zahl innerhalb des angegebenen Bereichs eingeben.'); return n; };
-    function dialogue() {
-      const d=data(), sum=total(), open=d.gear.filter(g=>!g.done).length;
-      if(sum>43000) return 'Zoll-Warnung: Die 430-€-Freigrenze ist überschritten. Melde deine Waren beim Zoll an und halte die Belege bereit!';
-      if(weight('checked')>d.limits.checked || weight('cabin')>d.limits.cabin) return 'Gewichts-Alarm! Prüfe dein Gepäcklimit und verteile dein Gear neu.';
-      if(sum>30000) return `Budget im Blick behalten: Noch ${money(43000-sum)} bis zur Freigrenze. ${open} Packpunkte offen.`;
-      return open ? `Logistics Core bereit! ${open} Packpunkte warten auf dich. Zoll-Puffer: ${money(43000-sum)}. Gewichte inklusive Koffer und Reserve eintragen.` : 'Ready for Departure! Deine Packliste ist vollständig. Prüfe noch Buchungen und Gepäckgewicht.';
-    }
+    const numeric = (value,min=0,max=1e7) => { const n=Number(value); if(String(value).trim()==='' || !Number.isFinite(n)||n<min||n>max) throw Error('Enter a valid number within the indicated range.'); return n; };
     const select = (name,values,current) => `<select name="${name}">${values.map(v=>`<option ${v===current?'selected':''}>${escape(v)}</option>`).join('')}</select>`;
     const field = (label,content) => `<label class="field">${label}${content}</label>`;
     const input = (name,type='text',extra='') => `<input name="${name}" type="${type}" ${extra}>`;
     const num = (name,value,max='10000000') => input(name,'number',`min="0" max="${max}" step="0.001" value="${value}" required`);
-    const remove = (kind,id) => `<button type="button" class="icon-button" data-org-delete="${kind}" data-id="${escape(id)}" aria-label="Eintrag löschen">🗑</button>`;
-    function markup() {
-      const d=data(), sum=total(), tone=sum>43000?'alarm':sum>30000?'warning':'safe', ready=d.gear.length?Math.round(d.gear.filter(g=>g.done).length/d.gear.length*100):0;
-      return `<div class="organisation" lang="de"><section class="card module-card org-customs ${tone}"><div class="section-heading"><div><span class="eyebrow">01 // ZOLL-WÄCHTER</span><h2>Japan Customs & Souvenirs</h2></div><button type="button" class="small-button" data-org-export>[EXPORT RECEIPT LOG]</button></div><div class="org-hud"><strong>${money(sum)} / 430,00 €</strong><span>≈ ${new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(sum/100*d.rate)} JPY</span><span>${sum<=43000?`${money(43000-sum)} frei`:`${money(sum-43000)} über dem Limit`}</span></div><p class="org-status">${tone==='alarm'?'ALERT: CUSTOMS DUTY RISK / LIMIT EXCEEDED':tone==='warning'?'WARNING: APPROACHING THRESHOLD':'STATUS: SAFE'}</p><progress max="43000" value="${Math.min(sum,43000)}" aria-label="Zollfreigrenze"></progress><form data-org-form="purchase" class="org-form">${field('Artikelname',input('title','text','maxlength="200" required placeholder="Miku Figur Akihabara"'))}${field('Kategorie',select('category',categories))}${field('Preis',num('price','', '10000000'))}${field('Währung',select('currency',['JPY','EUR']))}${field('1 EUR = JPY',input('rate','number',`min="0.001" max="1000000" step="0.001" value="${d.rate}" required data-org-rate`))}<button class="primary">[+ ADD TO CUSTOMS LOG]</button></form><p class="hint">Umrechnung pro Kauf gespeichert; Kursänderungen gelten für neue Käufe. Schätzung pro Person ab 15 Jahren bei Flugreisen. Lebensmittel und andere Waren können Sonderregeln unterliegen. <a href="https://www.zoll.de/DE/Privatpersonen/Reisen/Rueckkehr-aus-einem-Nicht-EU-Staat/Zoll-und-Steuern/Reisefreimengen/reisefreimengen_node.html" target="_blank" rel="noopener">Zoll-Regeln ↗</a></p>${field('Kategoriefilter',`<select data-org-filter><option value="all">Alle Kategorien</option>${categories.map(c=>`<option ${c===filter?'selected':''}>${c}</option>`).join('')}</select>`)}<div class="org-table"><table><thead><tr><th>Artikel</th><th>Kategorie</th><th>Original / Kurs</th><th>EUR</th><th></th></tr></thead><tbody>${d.purchases.filter(p=>filter==='all'||p.category===filter).map(p=>`<tr><td>${escape(p.title)}</td><td>${escape(p.category)}</td><td>${p.price} ${p.currency} / ${p.rate}</td><td>${money(p.cents)}</td><td>${remove('purchases',p.id)}</td></tr>`).join('')||'<tr><td colspan="5">Noch keine Einkäufe in dieser Ansicht.</td></tr>'}</tbody></table></div></section>
-      <section class="card module-card"><span class="eyebrow">02 // TACTICAL LUGGAGE</span><h2>Weight & Gear Matrix</h2><p>Ready for Departure: ${ready}%</p><progress max="100" value="${ready}" aria-label="Packfortschritt"></progress><div class="org-grid">${[['checked','Aufgabegepäck'],['cabin','Handgepäck']].map(([key,label])=>`<div class="org-weight ${weight(key)>d.limits[key]?'alarm':''}">${field(`${label}: Limit (kg)`,input(key,'number',`min="0.1" max="1000" step="0.1" value="${d.limits[key]}" data-org-limit="${key}"`))}<p>${weight(key).toFixed(2)} / ${d.limits[key]} kg ${weight(key)>d.limits[key]?'— LIMIT EXCEEDED':''}</p><progress max="${d.limits[key]}" value="${Math.min(weight(key),d.limits[key])}" aria-label="${label} Gewicht"></progress></div>`).join('')}</div><p class="hint">Alle geplanten Gewichte zählen, auch ungepackte Einträge und Souvenir-Reserve. Koffer-Eigengewicht als Eintrag hinzufügen. Powerbanks gehören ins Handgepäck; Airline-Vorgaben prüfen.</p>${groups.map(group=>`<details open><summary>${escape(group)}</summary>${d.gear.filter(g=>g.group===group).map(g=>`<div class="org-gear"><label class="${g.done?'org-done':''}"><input type="checkbox" data-org-done="${escape(g.id)}" ${g.done?'checked':''}> ${escape(g.title)}</label>${field('kg',input('weight','number',`min="0" max="1000" step="0.001" value="${g.weight}" data-org-weight="${escape(g.id)}"`))}${field('Gepäck',`<select data-org-bag="${escape(g.id)}"><option value="checked" ${g.bag==='checked'?'selected':''}>Aufgabe</option><option value="cabin" ${g.bag==='cabin'?'selected':''}>Hand</option></select>`)}${remove('gear',g.id)}</div>`).join('')}</details>`).join('')}<form data-org-form="gear" class="org-form">${field('Neuer Packpunkt',input('title','text','maxlength="200" required'))}${field('Gruppe',select('group',groups))}<button class="small-button">+ Packpunkt</button></form></section>
-      <section class="card module-card"><span class="eyebrow">03 // ROUTE TIMELINE · JAPAN LOCAL TIME</span><h2>Shinkansen & Itinerary</h2><form data-org-form="route" class="org-form">${field('Datum',input('date','date','required'))}${field('Uhrzeit (Japan)',input('time','time','required'))}${field('Aktivität / Ort',input('title','text','maxlength="200" required'))}${field('Transportmittel',input('transport','text','maxlength="200" placeholder="Shinkansen Nozomi"'))}${field('Notizen / Buchungsnummer','<textarea name="notes" maxlength="4000"></textarea>')}<button class="primary">+ Tagesetappe</button></form><div class="org-timeline">${[...d.routes].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).map(r=>`<article><div><time>${escape(r.date)} · ${escape(r.time)}</time><h3>${escape(r.title)}</h3><p>${escape(r.transport)}</p><p class="org-notes">${escape(r.notes)}</p></div>${field('Status',`<select data-org-route="${escape(r.id)}">${statuses.map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}</select>`)}${remove('routes',r.id)}</article>`).join('')||empty('Noch keine Tagesetappen. Plane deine erste Route.')}</div></section>
-      <section class="card module-card"><span class="eyebrow">04 // EMERGENCY & OFFLINE VAULT</span><h2>Dein Notfall-Spickzettel</h2><div class="org-grid">${[['hotelEN','Hotel-Adresse · English'],['hotelJP','ホテル住所 · 日本語']].map(([key,label])=>`<div>${field(label,`<textarea data-org-vault="${key}" maxlength="10000">${escape(d.vault[key])}</textarea>`)}<button type="button" class="small-button" data-org-copy="${key}">Adresse kopieren</button></div>`).join('')}${[['police','Polizei Japan','110'],['medical','Notarzt / Feuerwehr','119'],['embassy','Deutsche Botschaft Tokio · Zentrale','+81 3 5791 7700']].map(([key,label,value])=>`<div class="org-emergency"><h3>${label}</h3><p>${value}</p><button type="button" class="small-button" data-org-copy="${key}">Nummer kopieren</button></div>`).join('')}</div><p class="hint"><a href="https://japan.diplo.de/ja-de/vertretungen/botschaft" target="_blank" rel="noopener">Botschaft: Adresse, Öffnungszeiten und Bereitschaftsdienst ↗</a></p>${field('Private Offline-Notizen',`<textarea data-org-vault="notes" maxlength="20000" placeholder="eSIM-Code, Buchungshinweise …">${escape(d.vault.notes)}</textarea>`)}<p class="hint">Lokal im Browser gespeichert, unverschlüsselt; in LifeOS-Backups enthalten.</p><p data-org-feedback role="status" aria-live="polite"></p></section></div>`;
+    const remove = (kind,id) => `<button type="button" class="icon-button" data-org-delete="${kind}" data-id="${escape(id)}" aria-label="Delete entry">🗑</button>`;
+    function customsMarkup() {
+      const d=data(), sum=total(), estimate=customsEstimate(sum), tone=estimate.taxable?'alarm':'safe';
+      return `<div class="organisation org-japan-tool" lang="en"><section class="card module-card org-customs ${tone}"><div class="section-heading"><div><span class="eyebrow">TETO TOOLS // CUSTOMS WATCH</span><h2>Japan Customs & Souvenirs</h2></div><button type="button" class="small-button" data-org-export>[EXPORT RECEIPT LOG]</button></div><div id="customs-hud" aria-label="Japan customs overview"><div class="org-hud"><strong>TOTAL: ${yen(d.purchases.reduce((n,p)=>n+jpyPrice(p),0))} ¥ <small>(${money(sum)} / 430,00 € LIMIT)</small></strong></div><p class="org-status">${estimate.taxable?'ALERT: DUTIABLE // ALLOWANCE EXCEEDED':'STATUS: DUTY FREE // WITHIN ALLOWANCE'}</p><progress max="43000" value="${Math.min(sum,43000)}" aria-label="Customs allowance" aria-valuetext="${money(sum)} of EUR 430.00"></progress><div class="org-duty-tile" role="status" aria-live="polite"><div><strong>${estimate.taxable?'DUTIABLE':'DUTY FREE'}</strong><p>${estimate.taxable?`Over the allowance: ${money(sum-43000)}`:`Remaining allowance: ${money(estimate.remaining)}`}</p></div><div class="org-duty-amount"><strong>${estimate.taxable?`Estimated customs charges: approx. ${money(estimate.duty)}`:'Estimated charges: 0,00 €'}</strong>${estimate.taxable?`<p>${estimate.tag}</p><p>Estimated total payable (goods + duty): <b>${money(estimate.payable)}</b></p>`:''}</div></div>${estimate.taxable?`<aside class="org-red-lane"><strong>Goods to declare: use the red exit.</strong><p>Keep receipts ready and declare your purchases at customs. This estimate is not an official assessment.</p><a class="small-button" aria-label="Choose the red customs exit – open customs information" href="https://www.zoll.de/DE/Privatpersonen/Reisen/Rueckkehr-aus-einem-Nicht-EU-Staat/Zoll-und-Steuern/Ueberschreiten-Reisefreimengen/ueberschreiten-reisefreimengen_node.html" target="_blank" rel="noopener">[USE THE RED CUSTOMS EXIT]</a></aside>`:''}<p class="hint org-duty-note">Simplified budget estimate: only the amount above EUR 430.00 is charged at 17.5% (total value up to EUR 700.00) or 22%. In practice, indivisible items may be dutiable in full; the EUR 700 threshold applies to dutiable goods. Actual charges depend on the type and origin of the goods. Special rules still apply. <a href="https://www.zoll.de/DE/Privatpersonen/Reisen/Rueckkehr-aus-einem-Nicht-EU-Staat/Zoll-und-Steuern/Ueberschreiten-Reisefreimengen/ueberschreiten-reisefreimengen_node.html" target="_blank" rel="noopener">Customs: calculating charges ↗</a></p></div><form data-org-form="purchase" class="org-form org-quick-add">${field('Item name',input('title','text','maxlength="200" required autocomplete="off" placeholder="Miku figure from Akihabara" data-org-name'))}${field('Price in ¥ (Yen)',input('price','number','min="0.001" max="10000000" step="0.001" required inputmode="decimal" placeholder="5000" aria-describedby="japan-conversion" data-org-price')+'<output id="japan-conversion" class="org-conversion" aria-live="polite">Teto rate: ~0,00 €</output>')}<button class="primary" type="submit">+ Add ↵</button><details class="org-settings"><summary>Rate & category</summary><div class="org-grid">${field('1 EUR = JPY',input('rate','number',`min="0.001" max="1000000" step="0.001" value="${d.rate}" required data-org-rate`))}${field('Category',select('category',categories,'Other'))}</div></details></form><aside class="org-teto" lang="en" aria-label="Teto comments"><strong>KASANE TETO // BUDGET WATCH 🥖</strong><span class="org-reaction-source" data-org-reaction-source>${escape(reactionSource)}</span><p role="status" aria-live="polite">${escape(tetoRemark || tetoLine())}</p><small>Reactions use Groq: the changed item name, price and shopping total are sent for each update. Offline comments stay local.</small></aside><p class="hint">The conversion is saved for each purchase; rate changes apply to new purchases. Estimate per person aged 15 or older arriving by air. Food and other goods may be subject to special rules. <a href="https://www.zoll.de/DE/Privatpersonen/Reisen/Rueckkehr-aus-einem-Nicht-EU-Staat/Zoll-und-Steuern/Reisefreimengen/reisefreimengen_node.html" target="_blank" rel="noopener">Customs rules ↗</a></p>${field('Category filter',`<select data-org-filter><option value="all">All categories</option>${categories.map(c=>`<option ${c===filter?'selected':''}>${c}</option>`).join('')}</select>`)}<div class="org-table"><table><thead><tr><th>Item</th><th>Category</th><th>Price · JPY / EUR</th><th></th></tr></thead><tbody>${d.purchases.filter(p=>filter==='all'||p.category===filter).map(p=>`<tr><td>${escape(p.title)}</td><td>${escape(p.category)}</td><td class="org-item-price">${yen(jpyPrice(p))} ¥ <span>(ca. ${money(p.cents)})</span></td><td>${remove('purchases',p.id)}</td></tr>`).join('')||'<tr><td colspan="4">No purchases in this view yet.</td></tr>'}</tbody></table></div></section></div>`;
     }
-    function save(redraw=true) { Store.save(); if(redraw) render(); else renderHeader(); }
+    function weightMarkup() {
+      const d=data(), ready=d.gear.length?Math.round(d.gear.filter(g=>g.done).length/d.gear.length*100):0;
+      return `<div class="organisation org-japan-tool org-weight-tool" lang="en">
+      <section class="card module-card org-luggage"><span class="eyebrow">TETO TOOLS // TACTICAL LUGGAGE</span><h2>Weight & Gear Matrix</h2><p>Ready for Departure: ${ready}%</p><progress max="100" value="${ready}" aria-label="Packing progress"></progress><div class="org-grid">${[['checked','Checked baggage'],['cabin','Cabin baggage']].map(([key,label])=>`<div class="org-weight ${weight(key)>d.limits[key]?'alarm':''}">${field(`${label}: Limit (kg)`,input(key,'number',`min="0.1" max="1000" step="0.1" value="${d.limits[key]}" data-org-limit="${key}"`))}<p>${weight(key).toFixed(2)} / ${d.limits[key]} kg ${weight(key)>d.limits[key]?'— LIMIT EXCEEDED':''}</p><progress max="${d.limits[key]}" value="${Math.min(weight(key),d.limits[key])}" aria-label="${label} Weight"></progress></div>`).join('')}</div><p class="hint">All planned weights count, including unpacked items and souvenir capacity. Add the suitcase weight as an item. Power banks belong in cabin baggage; check your airline rules.</p>${groups.map(group=>`<details open><summary>${escape(group)}</summary>${d.gear.filter(g=>g.group===group).map(g=>`<div class="org-gear"><label class="${g.done?'org-done':''}"><input type="checkbox" data-org-done="${escape(g.id)}" ${g.done?'checked':''}> ${escape(g.title)}</label>${field('kg',input('weight','number',`min="0" max="1000" step="0.001" value="${g.weight}" data-org-weight="${escape(g.id)}"`))}${field('Baggage',`<select data-org-bag="${escape(g.id)}"><option value="checked" ${g.bag==='checked'?'selected':''}>Checked</option><option value="cabin" ${g.bag==='cabin'?'selected':''}>Cabin</option></select>`)}${remove('gear',g.id)}</div>`).join('')}</details>`).join('')}<form data-org-form="gear" class="org-form">${field('New packing item',input('title','text','maxlength="200" required'))}${field('Group',select('group',groups))}<button class="small-button">+ Packing item</button></form></section></div>`;
+    }
+    function save(redraw=true) {
+      if (Store.save()) {
+        try {
+          localStorage.setItem('weebokage_japan_items', JSON.stringify(data().purchases.map(p=>({id:p.id,name:p.title,priceJpy:jpyPrice(p),priceEur:p.cents/100,timestamp:p.timestamp ?? new Date().toISOString()}))));
+          localStorage.setItem('weebokage_japan_rate', String(data().rate));
+        } catch (_) { notify('Japan tracker storage unavailable; export a LifeOS backup.'); }
+      } if(redraw) render(); else renderHeader(); }
     document.addEventListener('submit',event=>{
       const form=event.target.closest('[data-org-form]'); if(!form) return;
       event.preventDefault(); if(!form.reportValidity()) return;
       try {
         const f=Object.fromEntries(new FormData(form)), d=data();
-        if(!f.title.trim()) throw Error('Bitte einen Namen eingeben.');
+        if(!f.title.trim()) throw Error('Enter a name.');
         if(form.dataset.orgForm==='purchase') {
-          const price=numeric(f.price,0.001), rate=numeric(f.rate,0.001,1e6), cents=Math.round(price*(f.currency==='JPY'?100/rate:100));
-          if(!Number.isSafeInteger(cents)||cents<1) throw Error('Der Preis muss mindestens 0,01 € entsprechen.');
-          d.rate=rate; d.purchases.push({id:uid(),title:f.title.trim(),category:f.category,price,currency:f.currency,rate,cents});
+          const price=numeric(f.price,0.001), rate=numeric(f.rate,0.001,1e6), cents=Math.round(price*100/rate);
+          if(!Number.isSafeInteger(cents)||cents<1) throw Error('The price must be at least EUR 0.01.');
+          d.rate=rate; const item={id:uid(),title:f.title.trim(),name:f.title.trim(),category:f.category,price,currency:'JPY',rate,cents,priceJpy:price,priceEur:cents/100,timestamp:new Date().toISOString()}; d.purchases.push(item); requestReaction('added',item); filter='all';
         } else if(form.dataset.orgForm==='gear') d.gear.push({id:uid(),title:f.title.trim(),group:f.group,weight:0,bag:'checked',done:false});
-        else d.routes.push({id:uid(),...f,title:f.title.trim(),status:'UPCOMING'});
+
         save();
+        if(form.dataset.orgForm==='purchase') $('[data-org-name]')?.focus();
       } catch(error) { notify(error.message); }
     });
     document.addEventListener('change',event=>{
@@ -435,33 +516,60 @@
         else if(el.matches('[data-org-weight]')) d.gear.find(g=>g.id===el.dataset.orgWeight).weight=numeric(el.value,0,1000);
         else if(el.matches('[data-org-done]')) d.gear.find(g=>g.id===el.dataset.orgDone).done=el.checked;
         else if(el.matches('[data-org-bag]')) d.gear.find(g=>g.id===el.dataset.orgBag).bag=el.value;
-        else if(el.matches('[data-org-route]')) d.routes.find(r=>r.id===el.dataset.orgRoute).status=el.value;
         else return;
         save();
       } catch(error) {notify(error.message); el.setCustomValidity(error.message);el.reportValidity();el.setCustomValidity('');}
     });
     document.addEventListener('input',event=>{
-      const key=event.target.dataset.orgVault;
-      if(key) {data().vault[key]=event.target.value;save(false);}
+      if (event.target.matches('[data-org-price], [data-org-rate]')) {
+        const form=event.target.closest('form'), price=Number(form.elements.price.value), rate=Number(form.elements.rate.value);
+        form.querySelector('output').textContent=Number.isFinite(price) && price>=0 && Number.isFinite(rate) && rate>=0.001 && rate<=1e6 ? `Teto rate: ~${euroAmount(price/rate)} €` : 'Teto rate: Enter a valid price and exchange rate';
+      }
     });
     document.addEventListener('click',async event=>{
-      const del=event.target.closest('[data-org-delete]'), copy=event.target.closest('[data-org-copy]');
-      if(del) { const key=del.dataset.orgDelete;data()[key]=data()[key].filter(v=>v.id!==del.dataset.id);save(); }
-      if(copy) {
-        const text=data().vault[copy.dataset.orgCopy] ?? ({police:'110',medical:'119',embassy:'+81 3 5791 7700'})[copy.dataset.orgCopy];
-        try { if(!text) throw Error(); await navigator.clipboard.writeText(text);notify('Kopiert.'); } catch(_) {notify('Kopieren nicht möglich. Text bitte markieren und manuell kopieren.');}
-      }
+      const del=event.target.closest('[data-org-delete]');
+      if(del) { const key=del.dataset.orgDelete, item=data()[key].find(v=>v.id===del.dataset.id);data()[key]=data()[key].filter(v=>v.id!==del.dataset.id);if(key==='purchases')requestReaction('removed',item);save(); }
       if(event.target.closest('[data-org-export]')) {
-        const d=data(), lines=['MIKU LOGISTICS CORE — CUSTOMS RECEIPT LOG',new Date().toISOString(),'Manuelle Umrechnung; Originalbelege bereithalten.','',...d.purchases.map(p=>`${p.title} | ${p.category} | ${p.price} ${p.currency} | 1 EUR = ${p.rate} JPY | ${money(p.cents)}`),'',`Gesamt: ${money(total())} / 430,00 €`, `Puffer: ${money(43000-total())}`];
+        const d=data(), lines=['MIKU LOGISTICS CORE — CUSTOMS RECEIPT LOG',new Date().toISOString(),'Manual conversion; keep original receipts ready.','',...d.purchases.map(p=>`${p.title} | ${p.category} | ${p.price} ${p.currency} | 1 EUR = ${p.rate} JPY | ${money(p.cents)}`),'',`Total: ${money(total())} / 430,00 €`, `Buffer: ${money(43000-total())}`];
         const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'})), a=document.createElement('a');a.href=url;a.download=`customs-log-${dateKey()}.txt`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
       }
     });
-    return {markup,dialogue};
+    return {weightMarkup,customsMarkup};
   })();
 
   // Rendering: all user-controlled content is escaped before HTML insertion.
   let notificationTimer;
   function notify(message) { const el = $('#notification'); el.textContent = message; el.classList.add('visible'); clearTimeout(notificationTimer); notificationTimer = setTimeout(() => el.classList.remove('visible'), 5000); }
+  // Decode off-screen before swapping; stale requests must never reveal an old character.
+  const companionSprites=new Map();
+  let companionRequest='', companionVersion=0, companionAnimation=null;
+  function updateCompanionSprite(tab) {
+    const src=`assets/lifeos/sprite_${tab}.png`, sprite=$('#persona-sprite');
+    if(companionRequest===src)return;
+    companionRequest=src;const version=++companionVersion;
+    sprite.style.visibility='hidden';sprite.dataset.loadState='loading';
+    companionAnimation?.cancel();companionAnimation=null;
+    if(!companionSprites.has(src)) {
+      const image=new Image();image.src=src;
+      companionSprites.set(src,image.decode().then(()=>true,()=>false));
+    }
+    void (async()=>{
+      if(!await companionSprites.get(src)) {
+        companionSprites.delete(src);
+        if(version===companionVersion){sprite.dataset.loadState='error';companionRequest='';}
+        return;
+      }
+      if(version!==companionVersion)return;
+      sprite.src=src;sprite.alt=personas[tab].alt;
+      try {await sprite.decode();} catch (_) {if(version===companionVersion){sprite.dataset.loadState='error';companionRequest='';}return;}
+      if(version!==companionVersion)return;
+      sprite.dataset.loadState='ready';
+      if(!matchMedia('(prefers-reduced-motion: reduce)').matches && sprite.animate) {
+        companionAnimation=sprite.animate([{opacity:0,transform:'translateX(10px)'},{opacity:1,transform:'none'}],{duration:320,easing:'cubic-bezier(.2,.7,.3,1)',fill:'both'});
+      }
+      sprite.style.visibility='visible';
+    })();
+  }
   function renderHeader() {
     const needed = requiredXP();
     $('#level-label').textContent = `LV. ${state.level} ${titleForLevel(state.level)}`;
@@ -471,9 +579,7 @@
     $('#today-label').textContent = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' }).format(new Date()).toUpperCase();
     const persona = personas[state.activeTab];
     $('#dashboard').classList.toggle('teto-theme', state.activeTab === 'teto');
-    const spriteTab = state.activeTab;
-    $('#persona-sprite').src = `assets/sprites/sprite_${spriteTab}.png`;
-    $('#persona-sprite').alt = personas[spriteTab].alt;
+    updateCompanionSprite(state.activeTab);
     $('#persona-name').textContent = persona.name;
     $('#persona-system').textContent = persona.system;
     $('#persona-role').textContent = persona.role;
@@ -486,8 +592,6 @@
     $('#quote-source').textContent = loading ? 'COMPANION IS THINKING…' : ui.quotes[state.activeTab]?.live ? 'LIVE COMPANION' : 'LOCAL COMPANION';
     $('#refresh-quote').disabled = ui.quotePending[state.activeTab] === contextKey;
     $('#sound-toggle').textContent=state.preferences.muted ? '🔇' : '🔊';
-    if(state.activeTab==='organisation') { $('#persona-quote').textContent=Organisation.dialogue(); $('#persona-quote').closest('.quote-bubble').setAttribute('aria-busy','false'); $('#quote-source').textContent='MIKU LOGISTICS CORE // LOCAL'; $('#refresh-quote').disabled=false; }
-    $('#dashboard').classList.toggle('organisation-theme',state.activeTab==='organisation');
     $('#sound-toggle').setAttribute('aria-label',state.preferences.muted ? 'Unmute sounds' : 'Mute sounds');
     $('#sound-toggle').setAttribute('aria-pressed',String(state.preferences.muted));
     updateSaveStatus();
@@ -500,11 +604,11 @@
     const today = dateKey();
     const habits = state.habits.map(h => `<div class="habit-row ${h.days.includes(today) ? 'completed' : ''}"><input class="row-check" type="checkbox" data-change="habit" data-id="${escape(h.id)}" ${h.days.includes(today) ? 'checked' : ''} aria-label="${escape(h.title)} completed today"><div class="row-copy"><div class="row-title">${escape(h.title)}</div><div class="row-meta">🔥 ${currentStreak(h.days)} day streak</div></div><span class="xp">+${h.xp} XP</span>${deleteButton('habit', h.id)}</div>`).join('');
     const quests = state.quests.filter(q => ui.filter === 'all' || (ui.filter === 'done' ? q.done : !q.done)).map(q => `<div class="quest-row ${q.done ? 'completed' : ''}"><input class="row-check" type="checkbox" data-change="quest" data-id="${escape(q.id)}" ${q.done ? 'checked' : ''} aria-label="${escape(q.title)} completed"><div class="row-copy"><div class="row-title">${escape(q.title)}</div><div class="row-meta"><span class="tag ${['high','medium','low'].includes(q.priority) ? q.priority : 'low'}">${escape(({high:'High',medium:'Medium',low:'Low'})[q.priority] || 'Low')}</span><span>${q.done ? 'Completed' : 'In progress'}</span></div></div><span class="xp">+${q.xp} XP</span>${deleteButton('quest', q.id)}</div>`).join('');
-    return `<section class="breach-launch card"><div><span class="eyebrow">ARCADE // BREACH PROTOCOL</span><h3>Find the signal. Break the sequence.</h3><p class="hint">30 seconds · alternating rows & columns · +40 XP · 3 rewarded hacks per day</p></div><button class="small-button" type="button" data-action="open-breach">Breach Terminal ↗</button></section><div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>◈</span>Daily Habit Syncs</h2><p>Your rhythm for today</p></div><button class="small-button" data-action="new-habit">+ New Habit</button></div>${habits || empty('Time for a new rhythm. Add your first habit.')}<div class="card-bottom">${state.habits.filter(h => h.days.includes(today)).length} / ${state.habits.length} SYNCS COMPLETE // DAILY RESET AT MIDNIGHT</div></section><section class="card module-card"><div class="section-heading"><div><h2><span>⌁</span>Active Quests</h2><p>Small missions. Real progress.</p></div><button class="small-button" data-action="new-quest">+ New Quest</button></div><div class="filters" aria-label="Filter quests">${[['all','All'],['open','Open'],['done','Completed']].map(([value,label]) => `<button data-action="filter" data-value="${value}" class="${ui.filter === value ? 'active' : ''}" aria-pressed="${ui.filter === value}">${label}</button>`).join('')}</div>${quests || empty('No quests in this view.')}<div class="card-bottom">${state.quests.filter(q => !q.done).length} OPEN MISSIONS // YOUR PACE, YOUR PROGRESS</div></section></div><div class="data-widgets"><section class="card module-card" data-vocadb-widget></section><section class="card module-card" data-cyberdex-widget></section></div>`;
+    return `<section class="breach-launch card"><div><span class="eyebrow">ARCADE // BREACH PROTOCOL</span><h3>Find the signal. Break the sequence.</h3><p class="hint">30 seconds · alternating rows & columns · +40 XP · 3 rewarded hacks per day</p></div><button class="small-button" type="button" data-action="open-breach">Breach Terminal ↗</button></section><div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>◈</span>Daily Habit Syncs</h2><p>Your rhythm for today</p></div><button class="small-button" data-action="new-habit">+ New Habit</button></div>${habits || empty('Time for a new rhythm. Add your first habit.')}<div class="card-bottom">${state.habits.filter(h => h.days.includes(today)).length} / ${state.habits.length} SYNCS COMPLETE // DAILY RESET AT MIDNIGHT</div></section><section class="card module-card"><div class="section-heading"><div><h2><span>⌁</span>Active Quests</h2><p>Small missions. Real progress.</p></div><button class="small-button" data-action="new-quest">+ New Quest</button></div><div class="filters" aria-label="Filter quests">${[['all','All'],['open','Open'],['done','Completed']].map(([value,label]) => `<button data-action="filter" data-value="${value}" class="${ui.filter === value ? 'active' : ''}" aria-pressed="${ui.filter === value}">${label}</button>`).join('')}</div>${quests || empty('No quests in this view.')}<div class="card-bottom">${state.quests.filter(q => !q.done).length} OPEN MISSIONS // YOUR PACE, YOUR PROGRESS</div></section></div><div class="data-widgets"><section class="card module-card" data-vocadb-widget></section></div>`;
   }
   function filteredNotes() { return state.notes.filter(n => (ui.loreCategory === 'all' || n.category === ui.loreCategory) && (ui.loreStatus === 'all' || n.status === ui.loreStatus) && `${n.title} ${n.content}`.toLocaleLowerCase().includes(ui.loreQuery.toLocaleLowerCase())); }
   function noteCards() { return filteredNotes().map(n => `<article class="note-card"><span class="tag">${escape(n.category)}</span> <span class="tag">${escape(n.status)}</span><h3>${escape(n.title)}</h3><div class="note-content">${escape(n.content)}</div>${n.source ? `<p class="note-source">${escape(n.source.filename)} · pp. ${escape(n.source.pages?.join(', ') || '')}</p>` : ''}<div class="note-footer"><button class="small-button" data-action="edit-note" data-id="${escape(n.id)}">Edit ↗</button>${deleteButton('note', n.id)}</div></article>`).join('') || empty('No matching archive entries yet. Capture your next idea.'); }
-  function renderLore() { return `<a class="lore-scanner-link small-button" href="scanner.html">◉ Holographic 3D Dimension Scanner öffnen ↗</a>${LoreGraph.markup()}<section class="card module-card"><div class="section-heading"><div><h2><span>▤</span>Lore Archive</h2><p>Characters, worlds and chapters in one place.</p></div><button class="small-button" data-action="new-note">+ New note</button></div><div class="pdf-import"><h3>Let Miku read your PDFs</h3><p class="hint">Upload text-based PDFs. Miku extracts and sorts characters, chapter notes and worldbuilding for your review.</p><p class="hint">PDF text is sent through your Render backend to Groq. Owner sign-in required. Up to 3 files, 5 MB and 40 pages each. Scans need OCR first.</p><div class="toolbar"><input id="lore-pdfs" type="file" accept="application/pdf,.pdf" multiple aria-label="Choose lore PDF files" ${ui.importBusy ? 'disabled' : ''}><button type="button" class="primary" data-action="import-pdfs" ${ui.importBusy ? 'disabled' : ''}>${ui.importBusy ? 'Miku is reading…' : 'Read & organise ↗'}</button></div><p class="import-status" id="pdf-status" role="status">${escape(ui.importStatus)}</p></div><div class="toolbar"><label class="field">Search archive<input id="lore-search" type="search" placeholder="Title or content …" value="${escape(ui.loreQuery)}"></label><label class="field">Category<select id="lore-category">${options([['all','All categories'],['Character Sheet','Character Sheet'],['Chapter Notes','Chapter Notes'],['Worldbuilding','Worldbuilding']],ui.loreCategory)}</select></label><label class="field">Status<select id="lore-status">${options([['all','All statuses'],['Draft','Draft'],['Final','Final']],ui.loreStatus)}</select></label></div><div id="note-list" class="note-grid">${noteCards()}</div></section>`; }
+  function renderLore() { return `<a class="lore-scanner-link small-button" href="scanner.html">◉ Open the holographic 3D Dimension Scanner ↗</a>${LoreGraph.markup()}<section class="card module-card"><div class="section-heading"><div><h2><span>▤</span>Lore Archive</h2><p>Characters, worlds and chapters in one place.</p></div><button class="small-button" data-action="new-note">+ New note</button></div><div class="pdf-import"><h3>Let Miku read your PDFs</h3><p class="hint">Upload text-based PDFs. Miku extracts and sorts characters, chapter notes and worldbuilding for your review.</p><p class="hint">PDF text is sent through your Render backend to Groq. Owner sign-in required. Up to 3 files, 5 MB and 40 pages each. Scans need OCR first.</p><div class="toolbar"><input id="lore-pdfs" type="file" accept="application/pdf,.pdf" multiple aria-label="Choose lore PDF files" ${ui.importBusy ? 'disabled' : ''}><button type="button" class="primary" data-action="import-pdfs" ${ui.importBusy ? 'disabled' : ''}>${ui.importBusy ? 'Miku is reading…' : 'Read & organise ↗'}</button></div><p class="import-status" id="pdf-status" role="status">${escape(ui.importStatus)}</p></div><div class="toolbar"><label class="field">Search archive<input id="lore-search" type="search" placeholder="Title or content …" value="${escape(ui.loreQuery)}"></label><label class="field">Category<select id="lore-category">${options([['all','All categories'],['Character Sheet','Character Sheet'],['Chapter Notes','Chapter Notes'],['Worldbuilding','Worldbuilding']],ui.loreCategory)}</select></label><label class="field">Status<select id="lore-status">${options([['all','All statuses'],['Draft','Draft'],['Final','Final']],ui.loreStatus)}</select></label></div><div id="note-list" class="note-grid">${noteCards()}</div></section>`; }
   const options = (items, selected) => items.map(([value,label]) => `<option value="${escape(value)}" ${value === selected ? 'selected' : ''}>${escape(label)}</option>`).join('');
   function renderFinance() {
     const entries = state.transactions.filter(t => t.date.startsWith(ui.month));
@@ -513,15 +617,24 @@
     return `<div class="toolbar"><label class="field">Budget month<input id="finance-month" type="month" value="${ui.month}"></label><p class="hint">Your overview in EUR · ${entries.length} transactions this month</p></div><div class="summary-grid"><article class="card summary-card"><p>TOTAL INCOME</p><strong class="positive">${euro(income)}</strong></article><article class="card summary-card"><p>TOTAL EXPENSES</p><strong class="negative">${euro(expense)}</strong></article><article class="card summary-card"><p>REMAINING BUDGET</p><strong class="${income-expense >= 0 ? 'positive':'negative'}">${euro(income-expense)}</strong></article></div><div class="budget-layout"><section class="card module-card"><div class="section-heading"><h2>New transaction</h2></div><form id="finance-form"><label class="field">Description<input name="title" required maxlength="100" placeholder="e.g. Groceries or salary"></label><div class="field-pair"><label class="field">Type<select name="type"><option value="expense">Expense</option><option value="income">Income</option></select></label><label class="field">Amount (€)<input name="amount" type="number" min="0.01" max="1000000" step="0.01" required placeholder="0,00"></label></div><label class="field">Category<select name="category">${options(['Salary','Housing','Groceries','Transport','Leisure','Savings','Other'].map(v=>[v,v]),'Other')}</select></label><label class="field">Date<input type="date" name="date" required value="${ui.month === dateKey().slice(0,7) ? dateKey() : ui.month+'-01'}"></label><button type="submit" class="primary">+ Save transaction</button></form></section><section class="card module-card"><div class="section-heading"><h2>Transaction Log</h2><span class="tag">${escape(ui.month)}</span></div>${entries.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<div class="entry-row"><div class="row-copy"><div class="row-title">${escape(t.title)}</div><div class="row-meta">${escape(t.category)} · ${escape(t.date)}</div></div><span class="amount ${t.type === 'income' ? 'positive':'negative'}">${t.type === 'income'?'+':'−'}${euro(t.cents)}</span>${deleteButton('transaction',t.id)}</div>`).join('') || empty('No transactions yet. Your monthly overview starts here.')}</section></div>`;
   }
   const units = { length: { mm:0.001, cm:0.01, m:1, km:1000, in:0.0254, ft:0.3048, mi:1609.344 }, weight: { g:0.001, kg:1, oz:0.028349523125, lb:0.45359237 }, time: { Seconds:1, Minutes:60, Hours:3600, Days:86400 }, temperature: { '°C':1, '°F':1, K:1 } };
-  function renderTools() { return `${$('#teto-ai-tools').innerHTML}<div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>⌘</span>Text Analyzer</h2><p>Teto counts. You write.</p></div><span class="tag">LIVE</span></div><label class="field">Your text<textarea id="counter-text" placeholder="Paste your text here …" rows="8"></textarea></label><div class="tool-output"><div class="tool-stat"><strong id="char-count">0</strong><span>CHARACTERS</span></div><div class="tool-stat"><strong id="word-count">0</strong><span>WORDS</span></div><div class="tool-stat"><strong id="line-count">0</strong><span>LINES</span></div></div><p class="hint">Characters include spaces. Your text stays on this device.</p></section><section class="card module-card"><div class="section-heading"><div><h2><span>⇄</span>Quick Converter</h2><p>Switch units. Save brainpower.</p></div></div><label class="field">Category<select id="convert-kind">${options([['length','Length'],['weight','Weight'],['time','Time'],['temperature','Temperature']],'length')}</select></label><label class="field">Value<input id="convert-value" type="number" step="any" value="1"></label><div class="field-pair"><label class="field">From<select id="convert-from"></select></label><label class="field">To<select id="convert-to"></select></label></div><output id="convert-result" class="converter-result" aria-live="polite"></output><p class="hint">Length · Weight · Time · Temperature</p></section></div>`; }
+  function renderTools() { return `${Organisation.customsMarkup()}${Organisation.weightMarkup()}${$('#teto-ai-tools').innerHTML}<div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>⌘</span>Text Analyzer</h2><p>Teto counts. You write.</p></div><span class="tag">LIVE</span></div><label class="field">Your text<textarea id="counter-text" placeholder="Paste your text here …" rows="8"></textarea></label><div class="tool-output"><div class="tool-stat"><strong id="char-count">0</strong><span>CHARACTERS</span></div><div class="tool-stat"><strong id="word-count">0</strong><span>WORDS</span></div><div class="tool-stat"><strong id="line-count">0</strong><span>LINES</span></div></div><p class="hint">Characters include spaces. Your text stays on this device.</p></section><section class="card module-card"><div class="section-heading"><div><h2><span>⇄</span>Quick Converter</h2><p>Switch units. Save brainpower.</p></div></div><label class="field">Category<select id="convert-kind">${options([['length','Length'],['weight','Weight'],['time','Time'],['temperature','Temperature']],'length')}</select></label><label class="field">Value<input id="convert-value" type="number" step="any" value="1"></label><div class="field-pair"><label class="field">From<select id="convert-from"></select></label><label class="field">To<select id="convert-to"></select></label></div><output id="convert-result" class="converter-result" aria-live="polite"></output><p class="hint">Length · Weight · Time · Temperature</p></section></div>`; }
   function renderImam() {
     const day = PrayerClock.day();
     const done = state.prayerDays[day] || [];
     const times = state.prayerTimes[day] || {};
     const hadith = hadiths[ui.hadith];
-    return `<div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>☾</span>Daily Prayer Sync</h2><p>The five daily prayers · ${escape(day)}</p></div><span class="tag">${done.length}/5</span></div><div class="prayer-settings"><form id="prayer-location-form"><div class="field-pair"><label class="field">City<input name="city" required maxlength="80" value="${escape(state.prayerPrefs.city)}"></label><label class="field">Country<input name="country" required maxlength="80" value="${escape(state.prayerPrefs.country)}"></label></div><label class="field">Calculation method<select name="method">${options([['3','Muslim World League'],['2','ISNA'],['4','Umm al-Qura'],['12','UOIF'],['13','Diyanet']],String(state.prayerPrefs.method))}</select></label><div class="prayer-actions"><button class="small-button" type="submit">Load times</button><button class="small-button" type="button" data-action="locate-prayers">◎ Use my location</button><button class="small-button" type="button" data-action="refresh-prayers">↻ Refresh</button></div></form><p id="prayer-status" class="hint">${escape(PrayerClock.status || (state.prayerPrefs.coordinates ? 'Your coordinates' : state.prayerPrefs.city+', '+state.prayerPrefs.country))}</p></div><div id="prayer-countdown" class="prayer-countdown" role="timer" aria-live="off">Next prayer: loading times…</div>${prayers.map(name=>`<div class="prayer-row"><input class="row-check" type="checkbox" data-change="prayer" data-name="${name}" ${done.includes(name)?'checked':''} aria-label="${name} prayed today"><span class="row-copy row-title">${name}<span class="prayer-xp">+20 XP</span></span><input type="time" data-change="prayer-time" data-name="${name}" value="${escape(times[name] || '')}" aria-label="Today’s time for ${name}"></div>`).join('')}<p class="hint">Aladhan times use the selected calculation method. Match your local mosque if needed; manual edits are preserved. Times shown in ${escape(state.prayerPrefs.timezone)}. Each prayer earns 20 XP once per day.</p></section><section class="card module-card" data-holo-card="hadith"><div class="section-heading"><div><h2>Hadith of the Day</h2><p>A moment to reflect.</p></div><button class="icon-button" data-action="next-hadith" aria-label="Show another hadith">↻</button></div><p class="hadith-text">${hadith.text}</p><a class="source-link" href="${hadith.url}" target="_blank" rel="noopener noreferrer">${hadith.source} ↗</a><p class="hint">English paraphrase of an excerpt. Read the complete hadith in the linked source.</p><div class="card-bottom">INTENTION // CONSISTENCY // KNOWLEDGE</div></section></div>`;
+    return `<p class="imam-bismillah" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p><div class="module-grid"><section class="card module-card"><div class="section-heading"><div><h2><span>☾</span>Daily Prayer Sync</h2><p>The five daily prayers · ${escape(day)}</p></div><span class="tag">${done.length}/5</span></div><div class="prayer-settings"><form id="prayer-location-form"><div class="field-pair"><label class="field">City<input name="city" required maxlength="80" value="${escape(state.prayerPrefs.city)}"></label><label class="field">Country<input name="country" required maxlength="80" value="${escape(state.prayerPrefs.country)}"></label></div><label class="field">Calculation method<select name="method">${options([['3','Muslim World League'],['2','ISNA'],['4','Umm al-Qura'],['12','UOIF'],['13','Diyanet']],String(state.prayerPrefs.method))}</select></label><div class="prayer-actions"><button class="small-button" type="submit">Load times</button><button class="small-button" type="button" data-action="locate-prayers">◎ Use my location</button><button class="small-button" type="button" data-action="refresh-prayers">↻ Refresh</button></div></form><p id="prayer-status" class="hint">${escape(PrayerClock.status || (state.prayerPrefs.coordinates ? 'Your coordinates' : state.prayerPrefs.city+', '+state.prayerPrefs.country))}</p></div><div id="prayer-countdown" class="prayer-countdown" role="timer" aria-live="off">Next prayer: loading times…</div>${prayers.map(name=>`<div class="prayer-row"><input id="prayer-check-${name}" class="row-check" type="checkbox" data-change="prayer" data-name="${name}" ${done.includes(name)?'checked':''} aria-label="${name} prayed today"><label class="prayer-label" for="prayer-check-${name}"><span class="prayer-name">${name}</span><span class="prayer-xp">+20 XP</span></label><input type="time" data-change="prayer-time" data-name="${name}" value="${escape(times[name] || '')}" aria-label="Today’s time for ${name}"></div>`).join('')}<p class="hint">Aladhan times use the selected calculation method. Match your local mosque if needed; manual edits are preserved. Times shown in ${escape(state.prayerPrefs.timezone)}. Each prayer earns 20 XP once per day.</p></section><section class="card module-card" data-holo-card="hadith"><div class="section-heading"><div><h2>Hadith of the Day</h2><p>A moment to reflect.</p></div><button class="icon-button" data-action="next-hadith" aria-label="Show another hadith">↻</button></div><p class="hadith-text">${hadith.text}</p><a class="source-link" href="${hadith.url}" target="_blank" rel="noopener noreferrer">${hadith.source} ↗</a><p class="hint">English paraphrase of an excerpt. Read the complete hadith in the linked source.</p><div class="card-bottom">INTENTION // CONSISTENCY // KNOWLEDGE</div></section></div>`;
   }
-  function render() { LoreGraph.destroy(); renderHeader(); $('#module-panel').innerHTML = ({ lifestyle:renderLifestyle, lore:renderLore, finance:renderFinance, teto:renderTools, imam:renderImam, organisation:Organisation.markup })[state.activeTab](); if (state.activeTab === 'lifestyle') window.LifeOSStreamsUI?.mount(); if (state.activeTab === 'lore') LoreGraph.mount(); if (state.activeTab === 'teto') { setConverterUnits(); window.LifeOSTetoTools?.mount(); } if (state.activeTab === 'imam') PrayerClock.tick(); }
+  let renderedTab=null, categoryAnimations=[];
+  function animateCategory() {
+    categoryAnimations.forEach(animation=>animation.cancel());categoryAnimations=[];
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    for(const [selector,offset,duration] of [['#module-panel','translateY(10px)',260],['.persona-copy','translateY(6px)',240]]) {
+      const node=$(selector);
+      if(node?.animate)categoryAnimations.push(node.animate([{opacity:0,transform:offset},{opacity:1,transform:'none'}],{duration,easing:'cubic-bezier(.2,.7,.3,1)'}));
+    }
+  }
+  function render() { const changed=renderedTab!==null && renderedTab!==state.activeTab;renderedTab=state.activeTab;LoreGraph.destroy(); renderHeader(); $('#module-panel').innerHTML = ({ lifestyle:renderLifestyle, lore:renderLore, finance:renderFinance, teto:renderTools, imam:renderImam })[state.activeTab](); if (state.activeTab === 'lifestyle') window.LifeOSStreamsUI?.mount(); if (state.activeTab === 'lore') LoreGraph.mount(); if (state.activeTab === 'teto') { setConverterUnits(); window.LifeOSTetoTools?.mount(); } if (state.activeTab === 'imam') PrayerClock.tick(); if(changed)animateCategory(); }
   function commit({ activity = true, redraw = true } = {}) { if (activity) Store.touch(); const saved = Store.save(); if (redraw) render(); else renderHeader(); Dialogue.schedule(); return saved; }
   function setConverterUnits() { const names = Object.keys(units[$('#convert-kind').value]); $('#convert-from').innerHTML = options(names.map(v=>[v,v]),names[0]); $('#convert-to').innerHTML = options(names.map(v=>[v,v]),names[1]); convert(); }
   function convert() {
@@ -664,6 +777,7 @@
     if (file.size > 10*1024*1024) { notify('Backup files must be smaller than 10 MB.'); return; }
     try {
       const restored = validateState(JSON.parse(await file.text()));
+      if(restored.activeTab==='organisation') restored.activeTab='teto';
       if (!personas[restored.activeTab]) restored.activeTab='lifestyle';
       if (!window.confirm('Replace your current progress with this backup? Export your current progress first if you want to keep both.')) return;
       const previous=state;state=restored;
@@ -673,7 +787,6 @@
     } catch (_) { notify('This is not a valid LifeOS backup. Your current progress is unchanged.'); }
   }
   async function requestQuote(tab,manual=false) {
-    if(tab==='organisation') {renderHeader();return;}
     const context=Dialogue.context(),key=Dialogue.key(context);
     if (ui.quotePending[tab] === key || (!manual && ui.quotes[tab]?.live && ui.quotes[tab]?.key === key)) return;
     const previous=ui.quotes[tab]?.text || '';
@@ -691,8 +804,8 @@
     } finally { if(ui.quotePending[tab]===key)delete ui.quotePending[tab];if(state.activeTab===tab)renderHeader(); }
   }
   async function callTetoAI(systemPrompt, userText, {tool, onStatus=()=>{}} = {}) {
-    if (!['polish','quests','prompt','scanner','decision','jargon','choreography'].includes(tool) || !userText.trim()) throw new Error('Bitte gib einen Text ein.');
-    if (!window.Weebokage) throw new Error('BACKEND OFFLINE // Die API-Verbindung ist nicht verfügbar.');
+    if (!['polish','quests','prompt','scanner','decision','jargon','choreography'].includes(tool) || !userText.trim()) throw new Error('Please enter some text.');
+    if (!window.Weebokage) throw new Error('BACKEND OFFLINE // The API connection is unavailable.');
     const thinking=['decision','jargon','choreography'].includes(tool) ? 'TETO IS CALCULATING TRAJECTORY...' : 'TETO IS THINKING...';
     for (let attempt=0; attempt<2; attempt++) {
       onStatus(thinking);
@@ -702,14 +815,14 @@
           body:JSON.stringify({tool,system_prompt:systemPrompt,user_text:userText})
         });
         const result=await response.json();
-        if (typeof result.reply !== 'string' || !result.reply.trim() || result.reply.length>30000) throw new Error('INVALID AI OUTPUT // Ungültige Antwort. Bitte erneut versuchen.');
+        if (typeof result.reply !== 'string' || !result.reply.trim() || result.reply.length>30000) throw new Error('INVALID AI OUTPUT // Invalid response. Please try again.');
         return result.reply;
       } catch (error) {
         const configured=/not configured|API.?key|GROQ_API_KEY|model not found|quota|rate limit/i.test(error.message);
         const invalid=/INVALID AI OUTPUT/i.test(error.message);
         const temporary=!configured && !invalid && (!error.status || [502,503,504].includes(error.status));
-        if (configured) throw new Error('KI-UPLINK NICHT KONFIGURIERT // API-Key, Modell oder Groq-Kontingent im Render-Backend prüfen.');
-        if (!temporary || attempt) throw new Error(invalid ? error.message : error.status===404 ? 'BACKEND UPDATE REQUIRED // Bitte das Render-Backend mit dem neuen Teto-Endpunkt aktualisieren.' : 'KI-UPLINK FEHLGESCHLAGEN // '+error.message+' Bitte erneut versuchen.');
+        if (configured) throw new Error('AI UPLINK NOT CONFIGURED // Check the API key, model or Groq quota in the Render backend.');
+        if (!temporary || attempt) throw new Error(invalid ? error.message : error.status===404 ? 'BACKEND UPDATE REQUIRED // Update the Render backend with the new Teto endpoint.' : 'AI UPLINK FAILED // '+error.message+' Please try again.');
         for (let seconds=10; seconds>0; seconds--) {
           onStatus(`BACKEND SLEEPING // RETRYING IN ${seconds}S`);
           await new Promise(resolve=>setTimeout(resolve,1000));
@@ -801,7 +914,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
   window.addEventListener('lifeos-reward', event => { if (event.detail.titleChanged) showTitleUnlock(event.detail.title); });
   window.addEventListener('lifeos-state-changed', () => { state = Store.load(); render(); });
-  window.addEventListener('storage', event => { if (event.key === STORAGE_KEY) { state = Store.load(); if (!personas[state.activeTab]) state.activeTab='lifestyle'; render(); } });
+  window.addEventListener('storage', event => { if (event.key === STORAGE_KEY) { state = Store.load(); if(state.activeTab==='organisation') state.activeTab='teto'; if (!personas[state.activeTab]) state.activeTab='lifestyle'; render(); } });
   Dialogue.snapshot();
   render();
   sdkReady=loadAuthSDK();

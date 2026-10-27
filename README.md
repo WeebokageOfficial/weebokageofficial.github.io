@@ -248,7 +248,7 @@ rotation, animation and camera transitions.
 projection; `scanner.js` wraps the projection in `latLonToVector3`. North is +Y,
 Greenwich is +Z and 90° east is +X. Weather and altitude readings are explicitly
 simulated; local time uses each real node's timezone. Selecting a fictional rift
-does not change your save. **Im Lore-Graph speichern & öffnen** creates its
+does not change your save. **Save to Lore Graph & Open** creates its
 missing graph record, preserves existing notes and opens that exact record.
 
 The renderer caps pixel density, batches land/stars/contours and pauses when the
@@ -273,8 +273,8 @@ The persistent shell also loads the same tokens for its music deck and console.
 
 `chrome.js` manages the accessible hamburger menu and Miku / Teto switch. Themes
 persist through the existing shared LifeOS state without changing the selected
-LifeOS module. The main navigation always links to Home, LifeOS, Anime Catalog,
-Transit and AI Chatbot; Explore contains the other pages and account controls.
+LifeOS module. The navigation groups Entertainment, Workspace, Music and About, with a standalone
+Shop link and LifeOS at the end. Category menus contain no character sprites.
 Protected pages still require their existing Firebase session.
 
 `chat.html` is the full Neural Synapse interface. Both this screen and existing
@@ -345,42 +345,31 @@ It covers telemetry thresholds/failures, battery events, real tilt initializatio
 clipboard contents, remount cleanup, modal/CLI launch, XP/level-up, daily limits,
 practice, timeout, invalid buffers and a complete touch round at 320px width.
 
-### Public VocaDB stream and Cyber-Dex
+### Public VocaDB stream
 
-`vocadb.html` and `pokemon.html` are standalone public pages in the persistent
-shell. Both also appear as Lifestyle widgets. No account, API key or backend
-proxy is needed. API schemas: [VocaDB](https://vocadb.net/api) and
-[PokéAPI](https://pokeapi.co/docs/v2).
+`vocadb.html` is a public page in the persistent shell, with a matching Song of
+the Day widget in LifeOS. No account, API key or backend proxy is needed.
 
 - `vocaloid random` chooses from 50 top-rated tracks; `vocaloid find QUERY`
   prints the top three matches. Song of the Day caches its selection for 24 hours
   in `vocadb_daily_cache`; reroll excludes the current song where possible.
-- `dex NAME_OR_ID` looks up stats, German species names/descriptions (English
-  fallback), height in metres and weight in kilograms. `dex list` reads the
-  local collection. Lookups never catch a Pokémon or award XP.
-- Completing every habit in a nonempty daily habit list creates one saved
-  encounter (IDs 1–251). Both dashboard checkboxes and `habit check` trigger it,
-  including while on another page. Close with Later and resume from the widget.
-  Reloading preserves the selected Pokémon. A failed API request does not
-  consume the catch; retry via Resume daily encounter.
-- Catching commits the unique collection entry, daily reward marker and +50 XP
-  in one LifeOS transaction, using Web Locks where available. Rechecking habits
-  cannot repeat the day's reward. A repeated species can earn the next day's
-  reward but does not increase the unique Dex count.
-- Collection and daily encounter records live in the versioned LifeOS profile
-  and its JSON backups; `cyberdex_caught` is a readable mirror. Existing saves
-  migrate to an empty collection. API results use a bounded local cache
-  (`weebokage.streams.cache.v1`), limited to 500,000 characters, with compact Pokémon responses cached for 30 days.
-  Requests time out after 12 seconds and return terminal stderr on failure.
+- API results use a bounded local cache (`weebokage.streams.cache.v1`), limited
+  to 500,000 characters. Requests time out after 12 seconds.
+- Cyber-Dex, daily encounters, catch rewards and the `dex` terminal command have
+  been removed. Older collection data remains readable in LifeOS backups.
+  Legacy `pokemon.html` bookmarks redirect to LifeOS.
 
-Implementation: `data-streams.js` (APIs and collection rules), `cyberdex.js`
-(shell-owned encounter), `streams-ui.js` (shared widgets/pages), and
-`data-streams.css`. The existing shared audio context supplies an 8-bit
-encounter fanfare and normal XP/level-up feedback.
+Implementation: `data-streams.js`, `streams-ui.js`, and `data-streams.css`.
+Validation: `node --test tests/data-streams.test.cjs` and
+`python tests/data_streams_ui.py` against a local server. Browser tests mock
+external services.
 
-Validation: `node --test tests/*.test.cjs`, plus
-`python tests/data_streams_ui.py` against a local server with Playwright.
-Browser tests mock external services; no real account or backend writes occur.
+### Shared navigation
+
+All content pages share Home and grouped Entertainment, Workspace, Music, and About menus, plus a standalone
+Shop link that always opens its entrance. Workspace includes the Terminal. LifeOS is a separate link at the end, followed by the Miku/Teto theme switch. `theme.css` styles both desktop
+and mobile; `chrome.js` handles focus containment, Escape, outside clicks and
+responsive changes. Account/private links retain their existing auth IDs.
 
 ### Teto AI mini tools
 
@@ -432,3 +421,26 @@ validate their structured inputs and outputs in both the backend and browser.
 The specialized tools use trajectory loading feedback and shared submit/success
 blips. Update the Render backend with the expanded `teto_ai.py` alongside the
 frontend. Browser validation: `python tests/teto_specialized_ui.py`.
+
+### On-demand music player
+
+Open Music → Music player for the full Spotify controls. The player stays
+hidden on normal visits and reserves no page space. After playback starts from
+a listening session, closing Music leaves a small persistent player with its
+equipped sprite and bop animation. Pausing keeps the mini player available for
+resume; disconnecting hides it. The full and mini views share the same SDK
+instance and DOM controls, so navigation never restarts playback.
+
+### Artwork organization
+
+See [assets/README.md](assets/README.md) for the image folder map and the source
+files that reference each group. Shop product art is independent from the free
+player dancers and the theme splash images. Existing product IDs are unchanged.
+
+### Homepage and private archive
+
+The home page presents the operator and interests. Guestbook messages live at `guestbook.html`. The WCU archive is reserved for the verified administrator; its stories, dossiers, and book details are not embedded in public assets.
+
+Add your personal homepage profile at `assets/profile/profile.png`. It is independent of Miku/Teto themes. Keep confidential book artwork outside public hosting.
+
+See [WCU_DATA.md](WCU_DATA.md) for owner setup, protected Firestore storage, importing the private backup, and editing archive records. Deploy the updated Firestore rules and website together to apply the restrictions.

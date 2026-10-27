@@ -5,3 +5,9 @@
 @media(max-width:760px){#cyber-diagnostics-bar{justify-content:space-between;gap:3px 12px;padding:6px 14px;font-size:7px}.diagnostics-label{display:none}#diagnostics-render{flex-basis:50%}#diagnostics-local{margin-left:auto}#diagnostics-net{order:2}#diagnostics-local,#diagnostics-tokyo{order:3}html[data-lifeos-shell]{--diagnostics-height:50px}.breach-launch{align-items:flex-start;flex-direction:column;padding:20px}.breach-launch button{width:100%}#breach-terminal{padding:20px}.breach-heading h2{font-size:23px}.breach-grid{gap:8px}.breach-grid button{min-height:52px;font-size:16px}.breach-target,.breach-buffer{font-size:8px}#breach-target span{padding:7px 9px}.holo-copy{min-height:40px}}
 @media(prefers-reduced-motion:reduce){.holo-card{transform:none!important}.holo-card::after{background-position:50% 50%;opacity:.25}.diagnostic-pill.checking:before,#breach-terminal[data-phase]{animation:none}}
 #breach-terminal{max-width:calc(100% - 24px)}#breach-terminal .hint{font-size:11px;line-height:1.7;color:var(--muted)}#breach-terminal #breach-quota{font:9px/1.8 var(--font-mono)}
+
+/* The diagnostics and content occupy separate grid rows, including during focus scrolling. */
+html[data-lifeos-shell] body{display:grid;grid-template-rows:auto minmax(0,1fr);height:100dvh;padding-bottom:var(--deck-height,0px);overflow:hidden;box-sizing:border-box}
+html[data-lifeos-shell] #cyber-diagnostics-bar{position:relative;inset:auto;grid-row:1;min-width:0}
+html[data-lifeos-shell] #site-content{grid-row:2;min-height:0;height:100%;margin-top:0;width:100%}
+html[data-lifeos-shell] #global-ui{display:contents}

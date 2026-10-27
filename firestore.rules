@@ -40,6 +40,33 @@ service cloud.firestore {
       allow update, delete: if isSignedIn();
     }
 
+    // Configure this document once in the Firebase console. Clients cannot change ownership.
+    match /site_config/access {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    function isWikiOwner() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/site_config/access)
+        && get(/databases/$(database)/documents/site_config/access).data.ownerUid == request.auth.uid;
+    }
+
+    match /wcu/active {
+      allow read: if isWikiOwner();
+      allow create, update: if isWikiOwner()
+        && request.resource.data.keys().hasOnly(['schemaVersion', 'databaseJson', 'revision', 'updatedAt', 'updatedBy'])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.databaseJson is string
+        && request.resource.data.databaseJson.size() <= 850000
+        && request.resource.data.revision is int
+        && ((!exists(/databases/$(database)/documents/wcu/active) && request.resource.data.revision == 1)
+          || (exists(/databases/$(database)/documents/wcu/active) && request.resource.data.revision == resource.data.revision + 1))
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

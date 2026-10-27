@@ -13,7 +13,7 @@ def main():
    requests=[];held=[];state={'hold':True,'choice':'B','invalid':False}
    decision={'choice':'B','reason':'Das Kapitel ist dein Engpass. Das Cover kann warten.','order':'Schreibe jetzt 45 Minuten an Option B. Keine Ausreden.','minutes':45}
    specs=[{'name':f'Kohärenz-Mantel Mk.{i}','acronym':f'CSN-{i}','description':'Ein Phasenfeld tarnt synthetische Konturen. <script>window.badSpec=true</script>'} for i in range(1,6)]
-   scene={'title':'Der letzte Upload','beats':[{'tag':'BURST','text':'Rohan presst die Hand auf das Terminal. „Stopp.“'},{'tag':'TEMPO SHIFT','text':'Der Gegner blickt auf. Ein halber Schritt zurück. <img src=x onerror="window.badScene=true">'},{'tag':'CLIMAX','text':'„Deine Zeit ist um.“ Das rote Licht erlischt.'}]}
+   scene={'title':'Der letzte Upload','beats':[{'tag':'BURST','text':'Character A presst die Hand auf das Terminal. „Stopp.“'},{'tag':'TEMPO SHIFT','text':'Der Gegner blickt auf. Ein halber Schritt zurück. <img src=x onerror="window.badScene=true">'},{'tag':'CLIMAX','text':'„Deine Zeit ist um.“ Das rote Licht erlischt.'}]}
    def respond(route):
     body=route.request.post_data_json;requests.append(body)
     if body['tool']=='decision' and state['hold']:held.append(route);return
@@ -39,7 +39,7 @@ def main():
    assert jargon.locator('script').count()==0;assert not fw(page).evaluate('window.badSpec||false')
    jargon.locator('[data-teto-spec-copy="2"]').click();jargon.locator('[data-teto-spec-copy="2"]').filter(has_text='COPIED').wait_for();assert 'CSN-3' in page.evaluate('navigator.clipboard.readText()')
    state['invalid']=True;jargon.locator('[type="submit"]').click();jargon.locator('.teto-job-status.teto-error').filter(has_text='INVALID AI OUTPUT').wait_for();assert jargon.locator('.teto-spec-card').count()==5;state['invalid']=False
-   choreography=f.locator('#teto-choreography-box');choreography.locator('[name="first"]').fill('Rohan: verzweifelt, offensiv');choreography.locator('[name="second"]').fill('Gegner: kalt, kalkuliert');choreography.locator('select').select_option('cqc');choreography.locator('textarea').fill('Rohan muss den Upload stoppen.');choreography.locator('[type="submit"]').click();choreography.locator('.teto-scene-beat').nth(2).wait_for()
+   choreography=f.locator('#teto-choreography-box');choreography.locator('[name="first"]').fill('Character A: verzweifelt, offensiv');choreography.locator('[name="second"]').fill('Gegner: kalt, kalkuliert');choreography.locator('select').select_option('cqc');choreography.locator('textarea').fill('Character A muss den Upload stoppen.');choreography.locator('[type="submit"]').click();choreography.locator('.teto-scene-beat').nth(2).wait_for()
    assert choreography.locator('.teto-pacing-tag').all_text_contents()==['[BURST]','[TEMPO SHIFT]','[CLIMAX]']
    assert choreography.locator('.teto-scene-output img').count()==0;assert not fw(page).evaluate('window.badScene||false')
    before=page.evaluate('LifeOSCore.read().notes.length');xp=page.evaluate('LifeOSCore.read().xp')

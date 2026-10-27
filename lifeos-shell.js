@@ -2,13 +2,14 @@
   'use strict';
   const frame = document.getElementById('site-content');
   const base = new URL('.', document.currentScript.src);
-  const pages = ['index','anime','games','credits','downloads','islam','transit','login','lifeos','scanner','chat','vocadb','pokemon'];
+  const pages = ['index','anime','games','credits','downloads','islam','transit','login','lifeos','scanner','chat','vocadb','shop','guestbook','wcu'];
   let themeObserver = null;
   let installPrompt = null;
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; });
   window.addEventListener('appinstalled', () => { installPrompt = null; frame.contentWindow.dispatchEvent(new Event('appinstalled')); });
   function route(value) {
     const url = new URL(value, location.href);
+    if (url.pathname === base.pathname + 'pokemon.html') url.pathname = base.pathname + 'lifeos.html';
     if (url.pathname === base.pathname) url.pathname += 'index.html';
     if (url.origin !== base.origin || !pages.some(page => url.pathname === base.pathname + page + '.html')) throw new Error('navigate: unknown page');
     return url;
@@ -37,6 +38,8 @@
     child.addEventListener('click', event => {
       const anchor = event.target.closest('a[href]');
       if (!anchor || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || anchor.hasAttribute('download') || (anchor.target && anchor.target !== '_self')) return;
+      const target=new URL(anchor.href);
+      if(target.origin===child.location.origin && target.pathname===child.location.pathname && target.search===child.location.search && target.hash) return;
       let next; try { next = route(anchor.href); } catch (_) { return; }
       event.preventDefault(); navigate(next.href);
     });

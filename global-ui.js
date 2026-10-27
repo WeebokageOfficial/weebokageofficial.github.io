@@ -8,18 +8,18 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
       <pre id="terminal-matrix" aria-hidden="true" hidden></pre>
       <form id="terminal-form" autocomplete="off"><label for="terminal-input">user@lifeos:~$</label><input id="terminal-input" type="text" spellcheck="false" autocomplete="off" maxlength="500" aria-label="Terminal command"></form>
     </section>
-    <section id="cyberdeck" class="cyberdeck" aria-label="Spotify CyberDeck music player">
+    <section id="cyberdeck" class="cyberdeck" aria-label="Your Spotify music player" hidden>
       <div id="player-character-stage" data-character="miku" aria-label="Character stage">
-        <img id="player-bop-sprite" src="assets/miku_bop_idle.png" alt="Miku dancer" class="bop-character">
+        <img id="player-bop-sprite" src="assets/player/miku_bop_idle.png" alt="Miku dancer" class="bop-character">
       </div>
-      <div class="deck-track"><div class="deck-art"><span aria-hidden="true">♫</span><img id="deck-cover" alt="Current album cover" hidden></div><div class="deck-metadata"><span class="deck-label">SPOTIFY // CYBERDECK</span><a id="deck-title" href="https://open.spotify.com" target="_blank" rel="noopener noreferrer">Your soundtrack awaits</a><span id="deck-artist">LifeOS CyberDeck</span></div></div>
+      <div class="deck-track"><div class="deck-art"><span aria-hidden="true">♫</span><img id="deck-cover" alt="Current album cover" hidden></div><div class="deck-metadata"><span class="deck-label">YOUR SOUNDTRACK / SPOTIFY</span><a id="deck-title" href="https://open.spotify.com" target="_blank" rel="noopener noreferrer">Your soundtrack awaits</a><span id="deck-artist">LifeOS CyberDeck</span></div></div>
       <div class="deck-playback"><div class="deck-buttons">
         <button id="deck-prev" type="button" aria-label="Previous track" disabled>⏮</button>
         <button id="deck-play" type="button" aria-label="Play" disabled>▶</button>
         <button id="deck-next" type="button" aria-label="Next track" disabled>⏭</button>
         <button id="deck-shuffle" type="button" aria-label="Shuffle" aria-pressed="false" disabled>⤨</button>
       </div><div class="deck-progress"><time id="deck-position">0:00</time><input id="deck-seek" type="range" min="0" max="1" step="1" value="0" aria-label="Track position" disabled><time id="deck-duration">0:00</time></div></div>
-      <div class="deck-connect"><label class="deck-volume">VOL <input id="deck-volume" type="range" min="0" max="100" value="50" aria-label="Volume" disabled></label><span id="deck-status" class="deck-status" role="status">CONNECT // DISCONNECTED</span><button id="deck-connect" class="small-button" type="button">Connect Spotify</button><button type="button" id="deck-size-toggle" class="small-button deck-size-toggle" aria-controls="cyberdeck" aria-expanded="true" aria-label="Spotify-Player verkleinern" title="Spotify-Player verkleinern">▾</button><button type="button" id="terminal-toggle" class="global-terminal-toggle" aria-controls="quake-terminal" aria-expanded="false" title="Kommandozentrale (^ / ~ / Escape)" aria-label="Kommandozentrale öffnen">&gt;_</button></div>
+      <div class="deck-connect"><label class="deck-volume">VOL <input id="deck-volume" type="range" min="0" max="100" value="50" aria-label="Volume" disabled></label><span id="deck-status" class="deck-status" role="status">CONNECT // DISCONNECTED</span><button id="deck-connect" class="small-button" type="button">Connect Spotify</button><button type="button" id="deck-size-toggle" class="small-button deck-size-toggle" aria-controls="cyberdeck" aria-expanded="true" aria-label="Minimize Spotify player" title="Minimize Spotify player">▾</button></div>
       <p id="deck-message" class="deck-message" role="status">Connect Spotify Premium, then select a song in Spotify.</p>
     </section>
 `;
@@ -32,7 +32,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
   for (const theme of ['miku', 'teto']) {
     for (const pose of ['bop', 'bop_idle']) {
       const image = new Image();
-      image.src = new URL(`assets/${theme}_${pose}.png`, assetBase).href;
+      image.src = new URL(`assets/player/${theme}_${pose}.png`, assetBase).href;
       const ready = image.decode().then(() => true, () => false);
       sprites.set(`${theme}_${pose}`, { image, ready });
     }
@@ -45,8 +45,18 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     const selected = document.body.classList.contains('theme-teto') ? 'teto'
       : document.body.classList.contains('theme-miku') ? 'miku'
       : document.documentElement.dataset.theme || saved || 'miku';
-    const theme = selected === 'teto' ? 'teto' : 'miku';
-    const next = `${theme}_${isPlaying ? 'bop' : 'bop_idle'}`;
+    let equipped={sprite:null,accent:null};
+    try { equipped=window.LifeOSShop?.inventory(window.LifeOSCore.read()).equipped || equipped; } catch (_) { /* Use the original player when saved data is unavailable. */ }
+    const cosmetic=window.LifeOSShop?.get(equipped.sprite);
+    const accent=window.LifeOSShop?.get(equipped.accent);
+    deck.dataset.shopAccent=accent?.department || '';
+    const theme = cosmetic?.department || (selected === 'teto' ? 'teto' : 'miku');
+    const next = `${cosmetic?.id || theme}_${isPlaying ? 'bop' : 'bop_idle'}`;
+    if(cosmetic && !sprites.has(next)) {
+      const image=new Image();
+      image.src=new URL(isPlaying ? cosmetic.bop : cosmetic.idle,assetBase).href;
+      sprites.set(next,{image,ready:image.decode().then(()=>true,()=>false)});
+    }
     if (!isPlaying) sprite.classList.remove('is-bopping');
     if (next === character) return;
     const initial = character === undefined;
@@ -59,7 +69,8 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     if (version !== switchVersion) return;
     if (loaded) {
       sprite.src = image.src;
-      sprite.alt = theme === 'teto' ? 'Teto dancer' : 'Miku dancer';
+      sprite.alt = cosmetic?.name || (theme === 'teto' ? 'Teto dancer' : 'Miku dancer');
+      stage.dataset.spriteStyle=cosmetic?.effect || 'classic';
       stage.dataset.character = theme;
       sprite.classList.toggle('is-bopping', isPlaying);
     } else {
@@ -74,23 +85,49 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
   new MutationObserver(syncCharacter).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
   document.addEventListener('themechange', syncCharacter);
   window.addEventListener('storage', syncCharacter);
+  window.addEventListener('lifeos-shop-changed',syncCharacter);
+  window.addEventListener('lifeos-state-changed',syncCharacter);
   void updatePlayerSprite(false);
-  const sizeToggle = document.getElementById('deck-size-toggle');
-  const sizeKey = 'weebokage.spotify.deck.compact';
-  function setCompact(compact) {
-    deck.classList.toggle('is-compact', compact);
-    sizeToggle.setAttribute('aria-expanded', String(!compact));
-    const label = compact ? 'Spotify-Player vergrößern' : 'Spotify-Player verkleinern';
-    sizeToggle.setAttribute('aria-label', label);
-    sizeToggle.title = label;
-    sizeToggle.textContent = compact ? '▴' : '▾';
+  const sizeToggle=document.getElementById('deck-size-toggle');
+  const room=document.createElement('dialog');
+  room.id='music-room';room.setAttribute('aria-labelledby','music-room-title');
+  room.innerHTML='<header class="music-room-heading"><div><span>MIKU × TETO / MUSIC</span><h1 id="music-room-title">Make yourself a soundtrack.</h1><p>Connect Spotify Premium, then pick a song in Spotify. Your companion keeps the beat.</p></div><button type="button" id="music-room-close" aria-label="Close music player">×</button></header><div class="music-room-player"></div>';
+  document.getElementById('global-ui').append(room);
+  let armed=false, hasPlayed=false, lastPlayback=null;
+  function layout() {
+    const height=room.open || deck.hidden ? 0 : Math.ceil(deck.getBoundingClientRect().height+parseFloat(getComputedStyle(deck).bottom)+12);
+    document.documentElement.style.setProperty('--deck-height',`${height}px`);
   }
-  try { setCompact(localStorage.getItem(sizeKey) === 'true'); } catch (_) { setCompact(false); }
-  sizeToggle.addEventListener('click', () => {
-    const compact = !deck.classList.contains('is-compact');
-    setCompact(compact);
-    try { localStorage.setItem(sizeKey, String(compact)); } catch (_) { /* Size still works without storage. */ }
-  });
+  function syncMode() {
+    deck.classList.remove('is-compact');
+    deck.dataset.playerMode=room.open?'full':'mini';
+    deck.hidden=!room.open && !hasPlayed;
+    sizeToggle.setAttribute('aria-label','Open full music player');
+    sizeToggle.title='Open full music player';sizeToggle.textContent='↗';
+    sizeToggle.setAttribute('aria-expanded',String(room.open));
+    layout();
+  }
+  function open() {
+    if(room.open)return;
+    armed=true;
+    room.querySelector('.music-room-player').append(deck);
+    room.showModal();
+    if(lastPlayback?.track_window?.current_track && !lastPlayback.paused)hasPlayed=true;
+    syncMode();
+    window.dispatchEvent(new Event('lifeos-music-open'));
+  }
+  function playback(state) {
+    lastPlayback=state;
+    if(!state)hasPlayed=false;
+    else if(armed && state.track_window?.current_track && !state.paused)hasPlayed=true;
+    syncMode();
+  }
+  room.querySelector('#music-room-close').addEventListener('click',()=>room.close());
+  room.addEventListener('close',()=>{document.getElementById('global-ui').append(deck);syncMode();});
+  sizeToggle.addEventListener('click',open);
+  window.LifeOSMusic={open,playback,layout};
+  syncMode();
+
 })();
 // Isolated from dashboard storage, imports and module re-renders.
 (() => {
@@ -174,9 +211,11 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     if (error || !code) throw new Error('Spotify login cancelled. You can connect again at any time.');
     await exchange({grant_type:'authorization_code',code,redirect_uri:redirectURI,code_verifier:auth.verifier});
     if (auth.returnTo) window.LifeOSShell.navigate(auth.returnTo,{replace:true});
+    window.LifeOSMusic.open();
   }
   function renderState(state) {
     playback = state; sampledAt = performance.now();
+    window.LifeOSMusic?.playback(state);
     void window.updatePlayerSprite(!!state && !state.paused);
     const track = state?.track_window?.current_track;
     el('title').textContent = track?.name || 'Your soundtrack awaits';
@@ -224,7 +263,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
       if (!await player.connect()) { player.disconnect(); player = null; status(false); message('Spotify could not connect. Please try again.'); }
     } finally { initializing = false; }
   }
-  window.LifeOSMusic = {
+  Object.assign(window.LifeOSMusic, {
     async command(args) {
       const [action = 'status', value, ...extra] = args;
       if (extra.length) throw new Error('music: too many arguments');
@@ -253,7 +292,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
       }
       throw new Error('music: unknown command; see man music');
     }
-  };
+  });
   window.onSpotifyWebPlaybackSDKReady = () => { run(initialize); };
   el('connect').addEventListener('click',() => run(async () => {
     if (!token) return authorize();
@@ -285,7 +324,8 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     script.onerror = () => { script.remove(); status(false); message('Spotify SDK could not load. Check your connection and reconnect.'); };
     document.head.append(script);
   }
-  run(async () => { await callback(); status(false); if (token) { loadSDK(); await initialize(); } });
+  window.addEventListener('lifeos-music-open',()=>run(async()=>{if(token){loadSDK();await initialize();}}));
+  run(async () => { await callback(); status(false); });
   fill(el('volume')); setInterval(tick,250);
   document.addEventListener('visibilitychange',() => { if (!document.hidden && player) run(async () => renderState(await player.getCurrentState())); });
   window.addEventListener('pagehide',event => { if (!event.persisted) player?.disconnect(); });
@@ -356,8 +396,9 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     const child=$('site-content').contentDocument;
     if(!opened&&(document.querySelector('dialog[open]')||child?.querySelector('dialog[open]')))return;
     opened=force??!opened;
-    const terminal=$('quake-terminal');terminal.classList.toggle('open',opened);terminal.inert=!opened;terminal.setAttribute('aria-hidden',String(!opened));$('terminal-toggle').setAttribute('aria-expanded',String(opened));
+    const terminal=$('quake-terminal');terminal.classList.toggle('open',opened);terminal.inert=!opened;terminal.setAttribute('aria-hidden',String(!opened));$('terminal-toggle')?.setAttribute('aria-expanded',String(opened));
     child?.getElementById('terminal-toggle')?.setAttribute('aria-expanded',String(opened));
+    child?.querySelectorAll('[data-open-terminal]').forEach(button=>button.setAttribute('aria-expanded',String(opened)));
     if(opened){previousFocus=document.activeElement;prompt();$('terminal-input').focus();}else{stopMatrix();if(previousFocus?.isConnected)previousFocus.focus();}
   }
   function handleGlobalKey(event) {
@@ -370,7 +411,7 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
   window.LifeOSTerminal={toggle,handleGlobalKey};
   window.addEventListener('lifeos-terminal-toggle',()=>toggle());
   document.addEventListener('keydown',handleGlobalKey);
-  $('terminal-toggle').addEventListener('click',()=>toggle());$('terminal-close').addEventListener('click',()=>toggle(false));
+  $('terminal-toggle')?.addEventListener('click',()=>toggle());$('terminal-close').addEventListener('click',()=>toggle(false));
   $('terminal-input').addEventListener('keydown',event=>{
     if(event.isComposing)return;const input=event.target;
     if(event.ctrlKey&&!event.altKey&&!event.metaKey){
@@ -407,6 +448,6 @@ const SPOTIFY_CLIENT_ID = 'd0eeaa4f1e2a43ffa9d05ad692629502';
     }catch(error){write(error.message,true);}finally{busy=false;$('terminal-form').setAttribute('aria-busy','false');prompt();if(opened)input.focus();}
   });
   $('terminal-output').addEventListener('click',async event=>{const button=event.target.closest('[data-terminal-help]');if(button){const outcome=await shell.run(`man ${button.dataset.terminalHelp}`);write(outcome.stdout);$('terminal-input').focus();}});
-  const resize=new ResizeObserver(entries=>{document.documentElement.style.setProperty('--deck-height',`${Math.ceil(entries[0].target.getBoundingClientRect().height)}px`);});resize.observe($('cyberdeck'));
+  const resize=new ResizeObserver(()=>window.LifeOSMusic?.layout());resize.observe($('cyberdeck'));
   write('LifeOS Cyber-Kernel v3.9-vocaloid\nBrowser shell · virtual filesystem · Type help or man COMMAND.\nTab completes commands, paths and IDs. Music keeps playing between pages.');prompt();
 })();

@@ -30,12 +30,19 @@
       const ledger=parsed.breachRewards;
       if (!ledger || typeof ledger !== 'object' || Array.isArray(ledger) || Object.keys(ledger).length>366 || !Object.entries(ledger).every(([day,r])=>/^\d{4}-\d{2}-\d{2}$/.test(day) && r && Array.isArray(r.rounds) && r.rounds.length<=3 && r.rounds.every(id=>typeof id==='string' && id.length>0 && id.length<=100) && new Set(r.rounds).size===r.rounds.length && Number.isSafeInteger(r.lastSuccessAt) && r.lastSuccessAt>=0)) throw new Error('Invalid breach rewards');
     }
+    if (parsed.shop != null) {
+      const shop=parsed.shop, str=v=>typeof v==='string' && v.length>0 && v.length<=80;
+      if (!shop || !Array.isArray(shop.owned) || shop.owned.length>100 || !shop.owned.every(str) || new Set(shop.owned).size!==shop.owned.length || !shop.equipped || !['sprite','accent'].every(type=>shop.equipped[type]===null || (str(shop.equipped[type]) && shop.owned.includes(shop.equipped[type])))) throw new Error('Invalid shop inventory');
+    }
     if (parsed.organisation != null) {
+      const translate = value => ({"Figuren/Merch": "Figures/Merch", "Kleidung": "Clothing", "Elektronik": "Electronics", "Snacks/Essen": "Snacks/Food", "Sonstiges": "Other", "Dokumente & Finanzen": "Documents & Finance", "Kleidung & Daily": "Clothing & Daily", "Kofferraum-Reserve": "Suitcase capacity", "Reisepass":"Passport", "Kreditkarten":"Credit cards", "Visum / Visit Japan Web QR":"Visa / Visit Japan Web QR", "Ladekabel": "Charging cable", "Souvenir-Reserve": "Souvenir capacity"})[value] || value;
+      const old = parsed.organisation;
+      parsed = {...parsed, organisation:{...old, purchases:Array.isArray(old.purchases)?old.purchases.map(p=>p && ({...p,category:translate(p.category)})):old.purchases, gear:Array.isArray(old.gear)?old.gear.map(g=>g && ({...g,group:translate(g.group),title:translate(g.title)})):old.gear}};
       const o=parsed.organisation, str=(v,max)=>typeof v==='string' && v.length<=max;
       const number=(v,min,max)=>Number.isFinite(v) && v>=min && v<=max;
       const entries=a=>Array.isArray(a) && a.length<=10000 && a.every(v=>v && str(v.id,100) && str(v.title,200));
       if (!o || !number(o.rate,.001,1e6) || !o.limits || !['checked','cabin'].every(k=>number(o.limits[k],.1,1000)) || !entries(o.purchases) || !entries(o.gear) || !entries(o.routes) || !o.vault || !['hotelEN','hotelJP','notes'].every(k=>str(o.vault[k],20000))) throw new Error('Invalid organisation data');
-      if (!o.purchases.every(p=>['Figuren/Merch','Kleidung','Elektronik','Snacks/Essen','Sonstiges'].includes(p.category) && ['JPY','EUR'].includes(p.currency) && number(p.price,.001,1e7) && number(p.rate,.001,1e6) && Number.isSafeInteger(p.cents) && p.cents>0) || !o.gear.every(g=>['Dokumente & Finanzen','Tech & Gear','Kleidung & Daily','Kofferraum-Reserve'].includes(g.group) && ['checked','cabin'].includes(g.bag) && number(g.weight,0,1000) && typeof g.done==='boolean') || !o.routes.every(r=>str(r.date,10) && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && str(r.time,5) && /^([01]\d|2[0-3]):[0-5]\d$/.test(r.time) && str(r.transport,200) && str(r.notes,4000) && ['UPCOMING','IN PROGRESS','COMPLETED'].includes(r.status))) throw new Error('Invalid organisation entries');
+      if (!o.purchases.every(p=>['Figures/Merch','Clothing','Electronics','Snacks/Food','Other'].includes(p.category) && ['JPY','EUR'].includes(p.currency) && number(p.price,.001,1e7) && number(p.rate,.001,1e6) && Number.isSafeInteger(p.cents) && p.cents>0) || !o.gear.every(g=>['Documents & Finance','Tech & Gear','Clothing & Daily','Suitcase capacity'].includes(g.group) && ['checked','cabin'].includes(g.bag) && number(g.weight,0,1000) && typeof g.done==='boolean') || !o.routes.every(r=>str(r.date,10) && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && str(r.time,5) && /^([01]\d|2[0-3]):[0-5]\d$/.test(r.time) && str(r.transport,200) && str(r.notes,4000) && ['UPCOMING','IN PROGRESS','COMPLETED'].includes(r.status))) throw new Error('Invalid organisation entries');
     }
     const cyberdex = validateCyberdex(parsed.cyberdex);
     const graph = validateLoreGraph(parsed.loreGraph);
@@ -52,6 +59,7 @@
     restored.transactions = parsed.transactions.map(t=>({...t,category:legacyCategories[t.category] || t.category}));
     return restored;
   }
+  // Historical collection data stays readable when restoring pre-removal backups.
   function validateCyberdex(value = {caught:[],encounters:{}}) {
     const id = n => Number.isInteger(n) && n >= 1 && n <= 251;
     if (!value || !Array.isArray(value.caught) || value.caught.length > 251 || !value.encounters || typeof value.encounters !== 'object' || Array.isArray(value.encounters) || Object.keys(value.encounters).length > 10000) throw new Error('Invalid Cyber-Dex');
@@ -70,7 +78,8 @@
     if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges) || graph.nodes.length > 2000 || graph.edges.length > 10000) throw new Error('Invalid lore graph');
     const ids = new Set();
     const nodes = graph.nodes.map(n => {
-      if (!n || !str(n.id,100) || !n.id || ids.has(n.id) || !str(n.name,120) || !n.name.trim() || !types.includes(n.type) || !['Aktiv','Verschollen','Zerstört'].includes(n.status) || !str(n.home,120) || !str(n.notes,20000) || !Array.isArray(n.attributes) || n.attributes.length > 50 || !n.attributes.every(a=>str(a,100)) || ['x','y'].some(k=>n[k] != null && (!Number.isFinite(n[k]) || Math.abs(n[k])>1e7))) throw new Error('Invalid lore node');
+      if (n) n = {...n,status:({Aktiv:"Active",Verschollen:"Missing",Zerstört:"Destroyed"})[n.status] || n.status};
+      if (!n || !str(n.id,100) || !n.id || ids.has(n.id) || !str(n.name,120) || !n.name.trim() || !types.includes(n.type) || !['Active','Missing','Destroyed'].includes(n.status) || !str(n.home,120) || !str(n.notes,20000) || !Array.isArray(n.attributes) || n.attributes.length > 50 || !n.attributes.every(a=>str(a,100)) || ['x','y'].some(k=>n[k] != null && (!Number.isFinite(n[k]) || Math.abs(n[k])>1e7))) throw new Error('Invalid lore node');
       ids.add(n.id); return {id:n.id,name:n.name,type:n.type,status:n.status,home:n.home,notes:n.notes,attributes:n.attributes,...(n.x != null ? {x:n.x}:{}),...(n.y != null ? {y:n.y}:{})};
     });
     const edgeIds = new Set();

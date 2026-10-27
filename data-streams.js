@@ -1,7 +1,6 @@
-// Public APIs, normalized cache entries and shared daily collection rules.
+// Public APIs, normalized cache entries and daily song recommendations.
 (() => {
   'use strict';
-  const Core = window.LifeOSCore;
   const pending = new Map(), DAY = 86400000, CACHE_KEY = 'weebokage.streams.cache.v1';
   const error = message => new Error(`ERROR: Node unreachable${message ? ' — '+message : ''}`);
   function readCache(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (_) { return null; } }
@@ -10,7 +9,7 @@
   function saveCache(key, data, ttl) {
     cache[key] = {data, expires: Date.now()+ttl};
     cache = Object.fromEntries(Object.entries(cache).filter(([,r])=>r && r.expires>Date.now()).slice(-300));
-    // Leave room for the profile: raw species responses can contain hundreds of flavor entries.
+    // Keep provider metadata from crowding out the LifeOS profile.
     while (JSON.stringify(cache).length > 500000) delete cache[Object.keys(cache)[0]];
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (_) { /* Optional API cache may remain in memory. */ }
     return data;
@@ -81,51 +80,6 @@
     })();
     try {return await dailyPending;} finally {dailyPending=null;}
   }
-  async function pokemon(input) {
-    const name=String(input).toLowerCase().trim();
-    if (!/^(?:[1-9]\d{0,4}|[a-z][a-z0-9-]{0,60})$/.test(name)) throw error('use a Pokémon name or National-Dex number');
-    const raw=await request(`https://pokeapi.co/api/v2/pokemon/${encodeURIComponent(name)}`,30*DAY, p=>({
-      id:p.id,name:p.name,species:p.species,height:p.height,weight:p.weight,types:p.types,stats:p.stats,
-      sprites:{front_default:p.sprites?.other?.showdown?.front_default || p.sprites?.versions?.['generation-v']?.['black-white']?.animated?.front_default || p.sprites?.front_default}
-    }));
-    if (!Number.isInteger(raw?.id) || !Array.isArray(raw.stats) || !Array.isArray(raw.types)) throw error('invalid PokéAPI response');
-    let species=null;
-    try {species=await request(`https://pokeapi.co/api/v2/pokemon-species/${encodeURIComponent(raw.species?.name || raw.id)}`,30*DAY, p=>({
-      names:['de','en'].map(lang=>p.names?.find(n=>n.language?.name===lang)).filter(Boolean),
-      flavor_text_entries:['de','en'].map(lang=>p.flavor_text_entries?.find(n=>n.language?.name===lang)).filter(Boolean)
-    }));} catch (_) { /* Pokémon data remains usable if species data is unavailable. */ }
-    const stat=key=>Number(raw.stats.find(s=>s.stat?.name===key)?.base_stat)||0;
-    const displayName=species?.names?.find(n=>n.language?.name==='de')?.name || raw.name;
-    const description=species?.flavor_text_entries?.find(n=>n.language?.name==='de')?.flavor_text || species?.flavor_text_entries?.find(n=>n.language?.name==='en')?.flavor_text || '';
-    return {id:raw.id,name:clean(raw.name,100),displayName:clean(displayName,100),
-      sprite:safeURL(raw.sprites?.other?.showdown?.front_default || raw.sprites?.versions?.['generation-v']?.['black-white']?.animated?.front_default || raw.sprites?.front_default),
-      types:raw.types.map(t=>clean(t.type?.name,20)),stats:{hp:stat('hp'),attack:stat('attack'),defense:stat('defense'),speed:stat('speed')},
-      height:Number(raw.height)/10,weight:Number(raw.weight)/10,description:clean(description,1000)};
-  }
-  function eligible(state, day=Core.dateKey()) {return state.habits.length>0 && state.habits.every(h=>h.days.includes(day));}
-  function prepareEncounter(state, day=Core.dateKey(), random=Math.random) {
-    state.cyberdex ||= {caught:[],encounters:{}};
-    if (state.cyberdex.encounters[day] || !eligible(state,day)) return state.cyberdex.encounters[day] || null;
-    return state.cyberdex.encounters[day]={id:1+Math.min(250,Math.max(0,Math.floor(random()*251))),status:'pending'};
-  }
-  function applyCatch(state, day, creature) {
-    const encounter=state.cyberdex?.encounters[day];
-    if (day!==Core.dateKey() || !encounter || encounter.status!=='pending' || encounter.id!==creature.id) return null;
-    Core.validateCyberdex({caught:[creature],encounters:{}});
-    encounter.status='caught';
-    if (!state.cyberdex.caught.some(p=>p.id===creature.id)) state.cyberdex.caught.push(creature);
-    return Core.award(state,50);
-  }
-  function caught() {return Core.read().cyberdex.caught.slice().sort((a,b)=>a.id-b.id);}
-  function mirrorCaught() {
-    try {localStorage.setItem('cyberdex_caught',JSON.stringify(caught()));} catch (_) { /* Atomic LifeOS document is the authoritative collection. */ }
-  }
-  async function catchPokemon(day, creature) {
-    const claim=()=>Core.update(state=>applyCatch(state,day,creature));
-    const reward=navigator.locks ? await navigator.locks.request('lifeos-state',claim) : claim();
-    mirrorCaught();
-    return reward;
-  }
   async function command(name,args) {
     if (name==='vocaloid') {
       if (args[0]==='random' && args.length===1) {
@@ -138,10 +92,7 @@
       }
       const e=new Error('vocaloid: usage: vocaloid random | vocaloid find QUERY');e.code=2;throw e;
     }
-    if (args.length===1 && args[0]==='list') return 'DEX SYNC: '+caught().length+' / 251\nID   NAME                     TYPE\n'+caught().map(p=>`#${String(p.id).padStart(3,'0')} ${p.displayName.padEnd(24)} ${p.types.join(' / ')}`).join('\n')+'\n';
-    if (args.length!==1) {const e=new Error('dex: usage: dex NAME_OR_ID | dex list');e.code=2;throw e;}
-    const p=await pokemon(args[0]);
-    return `========================================\nPOKÉ-DEX ENTRY: #${String(p.id).padStart(3,'0')} ${p.displayName.toUpperCase()} (${p.name})\nTYPE: ${p.types.join(' / ')}\nSTATS: HP: ${p.stats.hp} | ATK: ${p.stats.attack} | DEF: ${p.stats.defense} | SPE: ${p.stats.speed}\nHEIGHT: ${p.height}m | WEIGHT: ${p.weight}kg\n========================================\n`;
+    const e=new Error('Unknown data stream command');e.code=127;throw e;
   }
-  window.LifeOSDataStreams={dailySong,randomSong,songs,pokemon,command,caught,eligible,prepareEncounter,applyCatch,catchPokemon,mirrorCaught,safeURL,song};
+  window.LifeOSDataStreams={dailySong,randomSong,songs,command,safeURL,song};
 })();

@@ -44,7 +44,8 @@ def main():
     expected='teto' if tab=='teto' else 'miku'
     assert fw(page).evaluate('document.documentElement.dataset.theme')==expected,tab
     assert page.evaluate('document.documentElement.dataset.theme')==expected,tab
-    assert f.locator('#persona-sprite').get_attribute('src')==f'assets/sprites/sprite_{tab}.png'
+    f.locator('#persona-sprite').wait_for(state='visible')
+    assert f.locator('#persona-sprite').get_attribute('src')==f'assets/lifeos/sprite_{tab}.png'
     f.locator('.menu-toggle').click();f.locator('.cyber-theme').click();f.locator('.menu-toggle').click()
     assert fw(page).evaluate('document.documentElement.dataset.theme')==expected
    page.goto(BASE+'index.html');f=cf(page)

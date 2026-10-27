@@ -134,7 +134,13 @@
 
     function bindAuthNavigation(options = {}) {
         initFirebase();
+        let ownerCheck=0;
         return firebase.auth().onAuthStateChanged((user) => {
+            const attempt=++ownerCheck;
+            document.querySelectorAll("[data-admin-wcu]").forEach(link=>link.hidden=true);
+            if(user)apiFetch("/admin/config",{timeout:12000}).then(()=>{
+                if(attempt===ownerCheck)document.querySelectorAll("[data-admin-wcu]").forEach(link=>link.hidden=false);
+            }).catch(()=>{});
             document.querySelectorAll("#nav-transit, #nav-islam").forEach((link) => {
                 link.style.setProperty("display", user ? "inline-block" : "none", "important");
             });

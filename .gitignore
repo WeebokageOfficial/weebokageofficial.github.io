@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .venv/
+/private-wcu/
+/wcu-private*.json
+/wcu-archive*.json

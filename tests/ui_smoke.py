@@ -6,7 +6,7 @@ import os
 BASE=os.environ.get('UI_BASE_URL','http://127.0.0.1:8765/').rstrip('/')+'/'
 ARTIFACTS=Path(os.environ.get('UI_ARTIFACT_DIR','/tmp/weebokage-ui'));ARTIFACTS.mkdir(parents=True,exist_ok=True)
 FIREBASE='''(()=>{const user={email:'test@example.test',getIdToken:async()=> 'test-only'};const auth={currentUser:location.pathname.endsWith('/login.html')?null:user,onAuthStateChanged(fn){setTimeout(()=>fn(this.currentUser),0);return()=>{};},signOut:async()=>{},setPersistence:async()=>{},signInWithEmailAndPassword:async()=>{throw new Error('test rejection');}};const collection=name=>({orderBy(){return this},limit(){return this},onSnapshot(fn){fn({size:1,docs:[{data:()=>name==='posts'?{title:'A new frequency',content:'The digital sector is online. Build a little, explore a little.',timestamp:{toDate:()=>new Date('2026-10-12T12:00:00Z')}}:{name:'Signal visitor',msg:'Love this corner of the internet.'}}]});return()=>{};},add:async data=>{window.mockWrites=(window.mockWrites||[]).concat({name,data})}});const firestore=()=>({collection});firestore.FieldValue={serverTimestamp:()=> 'test-time'};const authFn=()=>auth;authFn.Auth={Persistence:{LOCAL:'local'}};window.firebase={apps:[{}],initializeApp(){},app(){return{}},auth:authFn,firestore};})();'''
-ANIME=[{'mal_id':i+1,'title':title,'type':kind,'status':'Finished Airing','score':score,'episodes':12,'images':{'jpg':{'large_image_url':BASE+'assets/mikukage.webp'}}} for i,(title,kind,score) in enumerate([('Cyber Song','TV',8.5),('Vocaloid Memories','Movie',9.1),('A Neon Dream','TV',7.4),('Orbit 39','OVA',8.2),('Beyond the Gate','TV',9.5),('Moonlight Core','Movie',8.3)])]
+ANIME=[{'mal_id':i+1,'title':title,'type':kind,'status':'Finished Airing','score':score,'episodes':12,'images':{'jpg':{'large_image_url':BASE+'assets/avatars/mikukage.webp'}}} for i,(title,kind,score) in enumerate([('Cyber Song','TV',8.5),('Vocaloid Memories','Movie',9.1),('A Neon Dream','TV',7.4),('Orbit 39','OVA',8.2),('Beyond the Gate','TV',9.5),('Moonlight Core','Movie',8.3)])]
 def configure(c):
  c.add_init_script(FIREBASE)
  c.route('https://www.gstatic.com/**',lambda r:r.fulfill(body='',content_type='application/javascript'))
@@ -32,18 +32,19 @@ def cf(page):return page.frame_locator('#site-content')
 def fw(page):return page.locator('#site-content').element_handle().content_frame()
 def main():
  with sync_playwright() as p:
-  browser=p.chromium.launch(headless=True,args=['--no-sandbox','--enable-unsafe-swiftshader'])
+  browser=p.chromium.launch(executable_path=os.environ.get('UI_BROWSER_PATH'),headless=True,args=['--no-sandbox','--enable-unsafe-swiftshader'])
   c=browser.new_context(viewport={'width':1440,'height':1100},service_workers='block');configure(c)
+  c.add_init_script("const now=new Date();localStorage.setItem('weebokage_splash_date',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`);")
   page=c.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-  for name in ['index','anime','transit','chat','games','credits','islam','downloads','login','lifeos','scanner']:
+  for name in ['index','anime','transit','chat','games','credits','islam','downloads','login','lifeos','scanner','guestbook','wcu']:
    page.goto(BASE+name+'.html',wait_until='domcontentloaded');f=cf(page);f.locator('.cyber-header').wait_for();f.locator('.cyber-footer').wait_for();page.wait_for_timeout(300)
    if name=='lifeos':f.locator('#enter-lifeos').click() if f.locator('#enter-lifeos').is_visible() else None
    assert f.locator('.cyber-nav a[href="chat.html"]').count()==1,name
    assert fw(page).evaluate('document.documentElement.scrollWidth<=innerWidth'),(name,'desktop overflow')
-   assert fw(page).evaluate("getComputedStyle(document.body).backgroundColor")=='rgb(10, 14, 20)',name
+   assert fw(page).evaluate("getComputedStyle(document.body).backgroundColor")==('rgb(6, 9, 14)' if name in ['index','guestbook','wcu'] else 'rgb(10, 14, 20)'),name
    if name in ['index','anime','transit','chat','lifeos']:page.screenshot(path=str(ARTIFACTS/('desktop-'+name+'.png')))
    print('DESKTOP',name,flush=True)
-   if name=='index':
+   if name=='guestbook':
     f.locator('#guestName').fill('UI test');f.locator('#guestMsg').fill('Test only');f.locator('#commentBtn').click();f.locator('#comment-status').filter(has_text='Message sent.').wait_for()
    if name=='anime':
     f.locator('.ani-card').first.wait_for();assert f.locator('.ani-card').count()==6
@@ -59,12 +60,12 @@ def main():
     f.locator('#email').fill('test@example.test');f.locator('#pass').fill('test-only');f.locator('#loginBtn').click();f.locator('#err').filter(has_text='ACCESS DENIED').wait_for()
   assert not errors,errors
   # Check all pages in one mobile shell without replacing persistent services.
-  mc=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,service_workers='block',reduced_motion='reduce');configure(mc);mp=mc.new_page();me=[];mp.on('pageerror',lambda e:me.append(str(e)))
-  for name in ['index','anime','transit','chat','games','credits','islam','downloads','login','lifeos','scanner']:
+  mc=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,service_workers='block',reduced_motion='reduce');configure(mc);mc.add_init_script("const now=new Date();localStorage.setItem('weebokage_splash_date',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`);");mp=mc.new_page();me=[];mp.on('pageerror',lambda e:me.append(str(e)))
+  for name in ['index','anime','transit','chat','games','credits','islam','downloads','login','lifeos','scanner','guestbook','wcu']:
    mp.goto(BASE+name+'.html',wait_until='domcontentloaded');f=cf(mp);f.locator('.cyber-header').wait_for();mp.wait_for_timeout(250)
    assert fw(mp).evaluate('document.documentElement.scrollWidth<=innerWidth'),(name,'mobile overflow',fw(mp).evaluate('[document.documentElement.scrollWidth,innerWidth]'))
    if name=='lifeos':f.locator('#enter-lifeos').click() if f.locator('#enter-lifeos').is_visible() else None
-   f.locator('.menu-toggle').click();assert f.locator('.menu-toggle').get_attribute('aria-expanded')=='true';assert f.locator('.cyber-nav a[href="chat.html"]').is_visible();f.locator('.menu-toggle').click()
+   f.locator('.menu-toggle').click();assert f.locator('.menu-toggle').get_attribute('aria-expanded')=='true';f.locator('[data-category="workspace"] summary').click();assert f.locator('.cyber-nav a[href="chat.html"]').is_visible();f.locator('.menu-toggle').click()
    if name in ['index','anime','chat','transit']:mp.screenshot(path=str(ARTIFACTS/('mobile-'+name+'.png')))
    print('MOBILE',name,flush=True)
   # Extra compact and tablet layouts, plus LifeOS module/theme state.
@@ -73,19 +74,22 @@ def main():
    for name in ['index','anime','chat','lifeos']:
     mp.goto(BASE+name+'.html',wait_until='domcontentloaded');f=cf(mp);f.locator('.cyber-header').wait_for()
     if name=='lifeos':
+     if f.locator('#enter-lifeos').is_visible():f.locator('#enter-lifeos').click()
      for tab in ['lifestyle','finance','lore','teto','imam']:
       f.locator('[data-tab="'+tab+'"]').click()
       assert fw(mp).evaluate('document.documentElement.scrollWidth<=innerWidth'),(width,name,tab)
      before=fw(mp).evaluate('LifeOSCore.read().activeTab')
+     previous_theme=fw(mp).evaluate('document.documentElement.dataset.theme')
+     expected_theme='miku' if previous_theme=='teto' else 'teto'
      f.locator('.menu-toggle').click();f.locator('.cyber-theme').click()
      assert fw(mp).evaluate('LifeOSCore.read().activeTab')==before
-     assert fw(mp).evaluate('document.documentElement.dataset.theme')=='miku'
-     assert mp.evaluate('document.documentElement.dataset.theme')=='miku'
+     assert fw(mp).evaluate('document.documentElement.dataset.theme')==expected_theme
+     assert mp.evaluate('document.documentElement.dataset.theme')==expected_theme
     assert fw(mp).evaluate('document.documentElement.scrollWidth<=innerWidth'),(width,name)
     # Restore Miku for the next width.
     mp.evaluate("localStorage.setItem('theme','miku');LifeOSCore.update(s=>{s.preferences.theme='miku';},{activity:false});")
   assert not me,me
-  print('PASS: 11 pages desktop/mobile, navigation, no overflow, guestbook, anime filters/search/modal/error, transit feeds, safe Markdown/highlighting, login errors',flush=True)
+  print('PASS: 13 pages desktop/mobile, navigation, no overflow, guestbook, anime filters/search/modal/error, transit feeds, safe Markdown/highlighting, login errors',flush=True)
   browser.close()
 
 if __name__=='__main__':main()

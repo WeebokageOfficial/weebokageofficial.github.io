@@ -10,7 +10,17 @@
   "theme_color": "#0a0e14",
   "background_color": "#0a0e14",
   "icons": [
-    { "src": "assets/mikukage.webp", "sizes": "512x512", "type": "image/webp", "purpose": "any" },
-    { "src": "assets/mikukage.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/avatars/mikukage.png?v=portraits-1",
+      "sizes": "2400x1792",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }

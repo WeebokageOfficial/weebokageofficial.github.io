@@ -33,7 +33,7 @@ class TetoAITests(unittest.TestCase):
             self.assertEqual(json.loads(response.json()['reply']),value)
             messages=self.model.invoke.call_args.args[0]
             self.assertIn('Kasane Teto',messages[0].content)
-            self.assertIn('Deutsch',messages[0].content)
+            self.assertIn('English',messages[0].content)
             self.assertIn('JSON',messages[0].content)
             self.assertEqual(json.loads(messages[1].content),{'material':'Notizen ordnen.'})
         self.assertFalse(main.chat_sessions.get('teto-tools'))
@@ -80,8 +80,8 @@ class TetoAITests(unittest.TestCase):
         decision_input={'options':[{'label':'A','title':'Kapitel schreiben','context':'Langfristiges Ziel'},{'label':'B','title':'Cover zeichnen'}]}
         decision={'choice':'A','reason':'Der Text ist der Engpass.','order':'Schreibe jetzt 45 Minuten.','minutes':45}
         specs=[{'name':f'Phasenmantel {i}','acronym':f'CSN-{i}','description':'Fiktionales kohärentes Tarnfeld.'} for i in range(5)]
-        scene={'title':'Der letzte Upload','beats':[{'tag':tag,'text':'Rohan hält inne. „Nicht diesmal.“'} for tag in ['BURST','TEMPO SHIFT','CLIMAX']]}
-        cases=[('decision',decision_input,decision),('jargon',{'category':'cyberware','purpose':'Tarnung für Androiden'},specs),('choreography',{'first':'Rohan: offensiv','second':'Gegner: kalkuliert','mode':'verbal','cause':'Ein Upload muss stoppen.'},scene)]
+        scene={'title':'Der letzte Upload','beats':[{'tag':tag,'text':'Character A hält inne. „Nicht diesmal.“'} for tag in ['BURST','TEMPO SHIFT','CLIMAX']]}
+        cases=[('decision',decision_input,decision),('jargon',{'category':'cyberware','purpose':'Tarnung für Androiden'},specs),('choreography',{'first':'Character A: offensiv','second':'Gegner: kalkuliert','mode':'verbal','cause':'Ein Upload muss stoppen.'},scene)]
         for tool,material,output in cases:
             result=self.call(tool,output,user_text=json.dumps(material))
             self.assertEqual(result.status_code,200,result.text)

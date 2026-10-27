@@ -20,7 +20,7 @@
     if (window.parent === window) {
         for (const theme of ['miku', 'teto']) {
             const sprite = new Image();
-            sprite.src = new URL(`assets/${theme}_victory.png`, assetBase).href;
+            sprite.src = new URL(`assets/splash/${theme}_victory.png`, assetBase).href;
             sprites[theme] = sprite;
         }
     }
@@ -55,7 +55,7 @@
         overlay.setAttribute('role', 'status');
         overlay.setAttribute('aria-live', 'polite');
         overlay.innerHTML = '<section class="splash-victory-stage"><div class="victory-content"><img class="victory-sprite" alt=""><div class="victory-dialog"><span class="victory-speaker"></span><p class="victory-line"></p></div></div></section>';
-        overlay.querySelector('img').src = new URL(`assets/${newTheme}_victory.png`, assetBase).href;
+        overlay.querySelector('img').src = new URL(`assets/splash/${newTheme}_victory.png`, assetBase).href;
         overlay.querySelector('.victory-speaker').textContent = newTheme === 'miku' ? 'HATSUNE MIKU // 01' : 'KASANE TETO // 02';
         overlay.querySelector('.victory-line').textContent = line;
         activeOverlay = overlay;
